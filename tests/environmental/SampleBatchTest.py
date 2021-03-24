@@ -8,7 +8,10 @@ from lightning_rl.environmental.SampleBatch import SampleBatch
 
 def assert_sample_batch(one, other):
     for k in set(one.keys()).union(set(other.keys())):
-        torch.testing.assert_allclose(one[k], other[k])
+        try:
+            torch.testing.assert_allclose(one[k], other[k])
+        except Exception as e:
+            raise Exception(f"For key = {k} \n{str(e)}\n{one[k]}\n{other[k]}")
 
 
 class SampleBatchTest(unittest.TestCase):

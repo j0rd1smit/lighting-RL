@@ -1,3 +1,5 @@
+from typing import Union
+
 import gym
 import numpy as np
 import torch
@@ -19,7 +21,7 @@ class EnvironmentLoop:
             VectorEnv,
         )
         self._done = not self._is_vectorized
-        self._episode_ids = np.arange(self.n_enviroments)
+        self._episode_ids = np.arange(self.n_enviroments, dtype=np.int64)
 
         assert not isinstance(env, AsyncVectorEnv), "Async is not supported."
 
@@ -31,6 +33,8 @@ class EnvironmentLoop:
 
     def seed(self, seed: Seed = None) -> None:
         self.env.seed(seed)
+        self.env.action_space.seed(seed)
+        self.reset()
 
     def reset(self) -> None:
         self._obs = self.env.reset()
@@ -45,26 +49,39 @@ class EnvironmentLoop:
 
         obs = self._obs
         action, agent_info = policy(obs)
-        assert isinstance(action, np.ndarray) or isinstance(action, float)
+        assert (
+            isinstance(action, np.ndarray)
+            or isinstance(action, tuple)
+            or isinstance(action, list)
+            or isinstance(action, float)
+            or isinstance(action, int)
+        ), f"type = {type(action)}"
 
         obs_next, r, d, _ = self.env.step(action)
 
         batch = {
-            SampleBatch.OBSERVATIONS: self._cast_obs(obs),
-            SampleBatch.ACTIONS: torch.tensor(action),
-            SampleBatch.REWARDS: torch.tensor(r, dtype=torch.float32),
-            SampleBatch.DONES: torch.tensor(d, dtype=torch.float32),
-            SampleBatch.OBSERVATION_NEXTS: self._cast_obs(obs_next),
+            SampleBatch.OBSERVATIONS: self._batch_if_needed(self._cast_obs(obs)),
+            SampleBatch.ACTIONS: self._batch_if_needed(torch.tensor(action)),
+            SampleBatch.REWARDS: self._batch_if_needed(
+                torch.tensor(r, dtype=torch.float32)
+            ),
+            SampleBatch.DONES: self._batch_if_needed(
+                torch.tensor(d, dtype=torch.float32)
+            ),
+            SampleBatch.OBSERVATION_NEXTS: self._batch_if_needed(
+                self._cast_obs(obs_next)
+            ),
             SampleBatch.EPS_ID: torch.from_numpy(self._episode_ids.copy()),
-            **agent_info,
         }
 
-        for k, v in batch.items():
-            batch[k] = self._batch_if_needed(v)
+        for k, v in agent_info.items():
+            assert isinstance(v, torch.Tensor)
+            assert k not in batch
+            batch[k] = v
 
         if not self._is_vectorized:
             self._done = d
-        elif np.any(d):
+        if np.any(d):
             self._update_episodes_ids_if_needed(d)
 
         return SampleBatch(batch)
@@ -84,7 +101,9 @@ class EnvironmentLoop:
 
         return x
 
-    def _update_episodes_ids_if_needed(self, d: np.ndarray) -> None:
+    def _update_episodes_ids_if_needed(self, d: Union[bool, np.ndarray]) -> None:
+        if isinstance(d, bool):
+            d = np.array([d])
         for i in range(self.n_enviroments):
             if d[i]:
                 self._episode_ids[i] = self._episode_ids.max() + 1

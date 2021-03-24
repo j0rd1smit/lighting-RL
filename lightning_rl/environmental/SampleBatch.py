@@ -55,13 +55,7 @@ class SampleBatch(dict):
         episode_ids = torch.unique(self[SampleBatch.EPS_ID])
         slices = []
         for episode_id in episode_ids:
-            slices.append(
-                SampleBatch(
-                    {
-                        k: v[self[SampleBatch.EPS_ID] == episode_id]
-                        for k, v in self.items()
-                    }
-                )
-            )
+            mask = self[SampleBatch.EPS_ID] == episode_id
+            slices.append(SampleBatch({k: v[mask] for k, v in self.items()}))
 
         return slices

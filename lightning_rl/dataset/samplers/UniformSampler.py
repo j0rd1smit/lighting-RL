@@ -1,15 +1,13 @@
 import random
 from typing import Iterator
 
-from torch.utils.data import Sampler
-
-from lightning_rl.storage.IBuffer import Buffer
+from torch.utils.data import Dataset, Sampler
 
 
 class UniformSampler(Sampler):
     def __init__(
         self,
-        buffer: Buffer,
+        buffer: Dataset,
         samples_per_epoch: int,
     ) -> None:
         super().__init__(None)

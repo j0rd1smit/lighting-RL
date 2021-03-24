@@ -3,15 +3,13 @@ from typing import Any, List
 import pytorch_lightning as pl
 import torch
 from pytorch_lightning import Callback
-from torch.utils.data import DataLoader, Sampler
-
-from lightning_rl.storage.IBuffer import DynamicBuffer
+from torch.utils.data import DataLoader, Dataset, Sampler
 
 
 class OnlineDataModule(pl.LightningDataModule):
     def __init__(
         self,
-        buffer: DynamicBuffer,
+        buffer: Dataset,
         sampler: Sampler,
         batch_size: int,
         *,
@@ -32,7 +30,7 @@ class OnlineDataModule(pl.LightningDataModule):
             sampler=self.sampler,
             batch_size=self.batch_size,
             num_workers=self.n_workers,
-            pin_memory=True,
+            pin_memory=self.pin_memory,
         )
 
     def make_callbacks(self) -> List[Callback]:
