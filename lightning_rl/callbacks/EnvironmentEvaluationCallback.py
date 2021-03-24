@@ -6,7 +6,7 @@ import numpy as np
 from pytorch_lightning import Callback, LightningModule, Trainer
 
 from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
-from lightning_rl.storage.SampleBatch import SampleBatch
+from lightning_rl.environmental.SampleBatch import SampleBatch
 
 ScoreMapper = Callable[[np.ndarray], np.ndarray]
 LengthMapper = Callable[[np.ndarray], np.ndarray]

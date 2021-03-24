@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from gym.vector import AsyncVectorEnv, VectorEnv
 
-from lightning_rl.storage.SampleBatch import SampleBatch
+from lightning_rl.environmental.SampleBatch import SampleBatch
 from lightning_rl.types import ActionAgentInfoTuple, Observation, Policy, Seed
 
 

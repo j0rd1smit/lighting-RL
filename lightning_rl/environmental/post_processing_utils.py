@@ -1,7 +1,7 @@
 import scipy.signal
 import torch
 
-from lightning_rl.storage.SampleBatch import SampleBatch
+from lightning_rl.environmental.SampleBatch import SampleBatch
 
 
 class Postprocessing:

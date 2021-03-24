@@ -4,7 +4,7 @@ from typing import Union
 import torch
 from torch.utils.data import Dataset
 
-from lightning_rl.storage.SampleBatch import SampleBatch
+from lightning_rl.environmental.SampleBatch import SampleBatch
 
 
 class Buffer(abc.ABC, Dataset):

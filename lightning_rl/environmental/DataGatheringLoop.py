@@ -2,8 +2,8 @@ import math
 from typing import Callable, Optional
 
 from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
+from lightning_rl.environmental.SampleBatch import SampleBatch
 from lightning_rl.storage.IBuffer import DynamicBuffer
-from lightning_rl.storage.SampleBatch import SampleBatch
 
 PostProcessFunction = Callable[[SampleBatch], SampleBatch]
 

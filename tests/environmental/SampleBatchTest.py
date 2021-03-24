@@ -3,7 +3,7 @@ import unittest
 import torch
 from parameterized import parameterized
 
-from lightning_rl.storage.SampleBatch import SampleBatch
+from lightning_rl.environmental.SampleBatch import SampleBatch
 
 
 def assert_sample_batch(one, other):

@@ -2,8 +2,8 @@ from typing import Dict, Union
 
 import torch
 
+from lightning_rl.environmental.SampleBatch import SampleBatch
 from lightning_rl.storage.IBuffer import DynamicBuffer
-from lightning_rl.storage.SampleBatch import SampleBatch
 
 
 class UniformReplayBuffer(DynamicBuffer):
