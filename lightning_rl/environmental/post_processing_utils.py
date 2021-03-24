@@ -15,6 +15,7 @@ def compute_advantages(
     last_r: float,
     gamma: float,
     lambda_: float = 1.0,
+    *,
     use_gae: bool = False,
     use_critic: bool = False,
 ) -> SampleBatch:
@@ -54,11 +55,3 @@ def discount_cumsum(x: torch.Tensor, gamma: float) -> torch.Tensor:
         .astype(dtype)
         .copy()
     )
-
-
-if __name__ == "__main__":
-
-    x = torch.arange(5, dtype=torch.float32)
-    print(x.dtype)
-
-    print(discount_cumsum(x, 0.99).dtype)
