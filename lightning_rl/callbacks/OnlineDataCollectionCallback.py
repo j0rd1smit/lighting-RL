@@ -1,5 +1,5 @@
 from pytorch_lightning import Callback
 
 
-class OnlineDataGatheringCallback(Callback):
+class OnlineDataCollectionCallback(Callback):
     pass
