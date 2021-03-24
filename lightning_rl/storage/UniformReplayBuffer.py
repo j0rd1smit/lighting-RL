@@ -10,9 +10,9 @@ class UniformReplayBuffer(DynamicBuffer):
     EXCLUDED_KEYS = [SampleBatch.IDX]
 
     def __init__(self, capacity: int) -> None:
+        self.capacity = capacity
 
         self.buffer: Dict[str, torch.Tensor] = {}
-        self.capacity = capacity
         self.pointer = 0
         self.size = 0
 
@@ -43,6 +43,11 @@ class UniformReplayBuffer(DynamicBuffer):
         batch[SampleBatch.IDX] = idxs
 
         return SampleBatch(batch)
+
+    def clear_buffer(self) -> None:
+        self.buffer: Dict[str, torch.Tensor] = {}
+        self.pointer = 0
+        self.size = 0
 
     def __len__(self) -> int:
         return self.size

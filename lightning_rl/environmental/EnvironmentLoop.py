@@ -45,6 +45,7 @@ class EnvironmentLoop:
 
         obs = self._obs
         action, agent_info = policy(obs)
+        assert isinstance(action, np.ndarray) or isinstance(action, float)
 
         obs_next, r, d, _ = self.env.step(action)
 

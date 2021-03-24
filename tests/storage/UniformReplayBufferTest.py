@@ -94,6 +94,15 @@ class UniformReplayBufferTest(unittest.TestCase):
         for i in range(buffer.size):
             self._assert_batch_equal(buffer[i], batches[i])
 
+    def test_clear_resets_the_size_zero(self):
+        self.assertTrue(False)
+
+    def test_after_clearing_it_no_longe_possible_to_get_the_old_samples(self):
+        self.assertTrue(False)
+
+    def clear_after_clearing_and_refilling_the_buffer_you_only_get_new_items(self):
+        self.assertTrue(False)
+
 
 if __name__ == "__main__":
     unittest.main()
