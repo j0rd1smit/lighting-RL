@@ -17,18 +17,22 @@ class UniformReplayBuffer(DynamicBuffer):
         self.size = 0
 
     def append(self, batch: SampleBatch) -> None:
+        assert (
+            len(batch[SampleBatch.REWARDS].shape) > 0
+        ), "Assumes that input indexable, please batch the results"
+
         if len(self.buffer) == 0:
             for k, v in batch.items():
                 if k not in self.EXCLUDED_KEYS:
-                    shape = (self.capacity,) + v.shape
+                    shape = (self.capacity,) + v.shape[1:]
                     self.buffer[k] = torch.zeros(shape, dtype=v.dtype)
+        for i in range(batch.n_samples):
+            for k, v in batch.items():
+                if k not in self.EXCLUDED_KEYS:
+                    self.buffer[k][self.pointer] = v[i]
 
-        for k, v in batch.items():
-            if k not in self.EXCLUDED_KEYS:
-                self.buffer[k][self.pointer] = v
-
-        self.pointer = (self.pointer + 1) % self.capacity
-        self.size = min(self.size + 1, self.capacity)
+            self.pointer = (self.pointer + 1) % self.capacity
+            self.size = min(self.size + 1, self.capacity)
 
     def __getitem__(self, idxs: Union[int, torch.Tensor]) -> SampleBatch:
         if isinstance(idxs, int):
@@ -36,7 +40,7 @@ class UniformReplayBuffer(DynamicBuffer):
 
         assert isinstance(idxs, torch.Tensor)
         batch = {k: self.buffer[k][idxs] for k in self.buffer}
-        batch[SampleBatch.IDX] = torch.from_numpy(idxs)
+        batch[SampleBatch.IDX] = idxs
 
         return SampleBatch(batch)
 
