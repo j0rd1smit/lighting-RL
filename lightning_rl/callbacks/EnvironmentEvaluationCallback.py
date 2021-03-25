@@ -1,6 +1,5 @@
 import copy
-from collections import Callable
-from typing import Dict, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 import numpy as np
 from pytorch_lightning import Callback, LightningModule, Trainer
@@ -31,7 +30,6 @@ class EnvironmentEvaluationCallback(Callback):
         env_loop: EnvironmentLoop,
         *,
         n_eval_episodes: int = 10,
-        eval_every_n_epoch: int = 1,
         return_mappers: Optional[Dict[str, ScoreMapper]] = None,
         length_mappers: Optional[Dict[str, LengthMapper]] = None,
         seed: Optional[int] = None,
@@ -41,7 +39,6 @@ class EnvironmentEvaluationCallback(Callback):
     ) -> None:
         self.env_loop = env_loop
         self.n_eval_episodes = n_eval_episodes
-        self.eval_every_n_epoch = eval_every_n_epoch
         self.return_mappers = (
             return_mappers
             if return_mappers is not None
@@ -64,7 +61,35 @@ class EnvironmentEvaluationCallback(Callback):
         if self.to_eval:
             pl_module.eval()
 
-        self.env_loop.reset()
+        returns: List[float] = []
+        lengths: List[float] = []
+
+        while len(returns) < self.n_eval_episodes:
+            self.env_loop.reset()
+            _lengths, _returns = self._eval_env_run()
+            returns = returns + _returns
+            lengths = lengths + _lengths
+
+        returns = np.array(returns)  # type: ignore
+        lengths = np.array(lengths)  # type: ignore
+
+        if self.to_eval and was_in_training_mode:
+            pl_module.train()
+
+        for k, mapper in self.return_mappers.items():
+            v: Any = mapper(returns)  # type: ignore
+            pl_module.log(self.logging_prefix + "/" + k, v, prog_bar=False)
+
+        for k, mapper in self.length_mappers.items():
+            v: Any = mapper(lengths)  # type: ignore
+            pl_module.log(self.logging_prefix + "/" + k, v, prog_bar=False)
+
+        if self.mean_return_in_progress_bar:
+            pl_module.log(
+                "return", np.mean(returns), prog_bar=True, on_epoch=False, on_step=False
+            )
+
+    def _eval_env_run(self) -> Tuple[List[float], List[float]]:
         dones = [False for _ in range(self.env_loop.n_enviroments)]
         returns = np.array([0 for _ in range(self.env_loop.n_enviroments)])
         lengths = np.array([0 for _ in range(self.env_loop.n_enviroments)])
@@ -79,20 +104,4 @@ class EnvironmentEvaluationCallback(Callback):
                 returns[i] += batch[SampleBatch.REWARDS][i]
                 lengths[i] += 1
 
-        if self.to_eval and was_in_training_mode:
-            pl_module.train()
-
-        for k, mapper in self.return_mappers.items():
-            pl_module.log(
-                self.logging_prefix + "/" + k, mapper(returns), prog_bar=False
-            )
-
-        for k, mapper in self.return_mappers.items():
-            pl_module.log(
-                self.logging_prefix + "/" + k, mapper(returns), prog_bar=False
-            )
-
-        if self.mean_return_in_progress_bar:
-            pl_module.log(
-                "return", np.mean(returns), prog_bar=True, on_epoch=False, on_step=False
-            )
+        return list(lengths), list(returns)

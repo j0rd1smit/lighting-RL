@@ -95,13 +95,43 @@ class UniformReplayBufferTest(unittest.TestCase):
             self._assert_batch_equal(buffer[i], batches[i])
 
     def test_clear_resets_the_size_zero(self):
-        self.assertTrue(False)
+        buffer = UniformReplayBuffer(5)
+        self.assertEqual(buffer.size, 0)
+
+        for _ in range(5):
+            batch = self._create_sample_batch()
+            buffer.append(batch)
+
+        self.assertEqual(len(buffer), 5)
+
+        buffer.clear()
+        self.assertEqual(len(buffer), 0)
 
     def test_after_clearing_it_no_longe_possible_to_get_the_old_samples(self):
-        self.assertTrue(False)
+        buffer = UniformReplayBuffer(5)
+        self.assertEqual(buffer.size, 0)
 
-    def clear_after_clearing_and_refilling_the_buffer_you_only_get_new_items(self):
-        self.assertTrue(False)
+        for _ in range(5):
+            batch = self._create_sample_batch()
+            buffer.append(batch)
+
+        self.assertEqual(len(buffer), 5)
+
+        buffer.clear()
+        self.assertRaises(AssertionError, lambda: buffer[0])
+
+    def test_clear_after_clearing_and_refilling_the_buffer_you_only_get_new_items(self):
+        buffer = UniformReplayBuffer(5)
+        self.assertEqual(buffer.size, 0)
+
+        batch = self._create_sample_batch()
+        buffer.append(batch)
+        self._assert_batch_equal(buffer[0], batch)
+
+        buffer.clear()
+        batch2 = self._create_sample_batch()
+        buffer.append(batch2)
+        self._assert_batch_equal(buffer[0], batch2)
 
 
 if __name__ == "__main__":

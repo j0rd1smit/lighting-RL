@@ -38,14 +38,15 @@ class UniformReplayBuffer(DynamicBuffer):
         if isinstance(idxs, int):
             idxs = torch.tensor([idxs])
 
+        assert torch.all(idxs < self.size)
+
         assert isinstance(idxs, torch.Tensor)
         batch = {k: self.buffer[k][idxs] for k in self.buffer}
         batch[SampleBatch.IDX] = idxs
 
         return SampleBatch(batch)
 
-    def clear_buffer(self) -> None:
-        self.buffer: Dict[str, torch.Tensor] = {}
+    def clear(self) -> None:
         self.pointer = 0
         self.size = 0
 

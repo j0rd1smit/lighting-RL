@@ -21,3 +21,7 @@ class DynamicBuffer(Buffer):
     @abc.abstractmethod
     def append(self, batch: SampleBatch) -> None:
         pass
+
+    @abc.abstractmethod
+    def clear(self) -> None:
+        pass
