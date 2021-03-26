@@ -20,7 +20,7 @@ class UniformReplayBufferTest(unittest.TestCase):
 
         buffer.append(sample_batch)
 
-        self._assert_batch_equal(buffer[0], sample_batch)
+        self._assert_batch_equal(buffer[0], self._squeeze_batch(sample_batch))
 
     def _create_sample_batch(self):
         return SampleBatch(
@@ -32,6 +32,9 @@ class UniformReplayBufferTest(unittest.TestCase):
                 SampleBatch.DONES: torch.rand(1) > 0.5,
             }
         )
+
+    def _squeeze_batch(self, batch):
+        return SampleBatch({k: torch.squeeze(v) for k, v in batch.items()})
 
     def _assert_batch_equal(self, batch, other):
         for k, v in batch.items():
@@ -92,7 +95,7 @@ class UniformReplayBufferTest(unittest.TestCase):
             batches[i % capacity] = batch
 
         for i in range(buffer.size):
-            self._assert_batch_equal(buffer[i], batches[i])
+            self._assert_batch_equal(buffer[i], self._squeeze_batch(batches[i]))
 
     def test_clear_resets_the_size_zero(self):
         buffer = UniformReplayBuffer(5)
@@ -126,12 +129,12 @@ class UniformReplayBufferTest(unittest.TestCase):
 
         batch = self._create_sample_batch()
         buffer.append(batch)
-        self._assert_batch_equal(buffer[0], batch)
+        self._assert_batch_equal(buffer[0], self._squeeze_batch(batch))
 
         buffer.clear()
         batch2 = self._create_sample_batch()
         buffer.append(batch2)
-        self._assert_batch_equal(buffer[0], batch2)
+        self._assert_batch_equal(buffer[0], self._squeeze_batch(batch2))
 
 
 if __name__ == "__main__":

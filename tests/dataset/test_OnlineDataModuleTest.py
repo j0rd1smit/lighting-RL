@@ -15,7 +15,7 @@ class OnlineDataModuleTest(unittest.TestCase):
         buffer = TensorDataset(data, target_data)
         sampler = UniformSampler(buffer, 1)
 
-        data_module = OnlineDataModule(buffer, sampler, 1, pin_memory=False)
+        data_module = OnlineDataModule(buffer, 1, sampler=sampler, pin_memory=False)
         x, y = next(iter(data_module.train_dataloader()))
 
         torch.testing.assert_allclose(x, data)
@@ -28,7 +28,9 @@ class OnlineDataModuleTest(unittest.TestCase):
         buffer = TensorDataset(data, target_data)
         sampler = UniformSampler(buffer, 10)
 
-        data_module = OnlineDataModule(buffer, sampler, batch_size, pin_memory=False)
+        data_module = OnlineDataModule(
+            buffer, batch_size, sampler=sampler, pin_memory=False
+        )
         x, y = next(iter(data_module.train_dataloader()))
 
         self.assertEqual(x.shape[0], batch_size)

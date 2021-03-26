@@ -33,13 +33,16 @@ class EnvironmentLoop:
 
         if isinstance(env.action_space, Discrete):
             self._is_discrete_action_space = True
+            self._expected_action_shape = (1,) + self.env.action_space.shape
         elif isinstance(env.action_space, Box):
             self._is_discrete_action_space = False
+            self._expected_action_shape = (1,) + self.env.action_space.shape
         elif isinstance(env.action_space, Tuple):
             self._is_discrete_action_space = isinstance(
                 env.envs[0].action_space,
                 Discrete,
             )
+            self._expected_action_shape = (self.n_enviroments,) + self.env.envs[0].action_space.shape
         else:
             raise Exception("Unknown action space", env.action_space)
 
@@ -66,7 +69,7 @@ class EnvironmentLoop:
         return self._step(self._policy)
 
     def _policy(self, obs: Observation) -> ActionAgentInfoTuple:
-        obs_tensor = torch.from_numpy(obs)
+        obs_tensor = torch.from_numpy(obs).float()
 
         with torch.no_grad():
             action, agent_info = self.policy(obs_tensor)
@@ -75,19 +78,16 @@ class EnvironmentLoop:
 
             return action, agent_info
 
-    def _step(
-        self, policy: Callable[[Observation], ActionAgentInfoTuple]
-    ) -> SampleBatch:
+    def _step(self, policy: Callable[[Observation], ActionAgentInfoTuple]) -> SampleBatch:
         if not self._is_vectorized and self._done:
             self.reset()
 
         obs = np.array(self._obs)
-        assert (
-            obs.shape == self._expected_observation_shape
-        ), f"{ obs.shape} != {self._expected_observation_shape}"
+        assert obs.shape == self._expected_observation_shape, f"{ obs.shape} != {self._expected_observation_shape}"
 
         action, agent_info = policy(obs)
         _action = action.numpy() if isinstance(action, torch.Tensor) else action
+        assert self._expected_action_shape == _action.shape, f"{self._expected_action_shape} != {_action.shape}"
 
         if not self._is_vectorized:
             obs_next, r, d, _ = self.env.step(_action[0])
@@ -103,12 +103,8 @@ class EnvironmentLoop:
         batch = {
             SampleBatch.OBSERVATIONS: self._cast_obs(obs),
             SampleBatch.ACTIONS: action,
-            SampleBatch.REWARDS: self._batch_if_needed(
-                torch.tensor(r, dtype=torch.float32)
-            ),
-            SampleBatch.DONES: self._batch_if_needed(
-                torch.tensor(d, dtype=torch.float32)
-            ),
+            SampleBatch.REWARDS: self._batch_if_needed(torch.tensor(r, dtype=torch.float32)),
+            SampleBatch.DONES: self._batch_if_needed(torch.tensor(d, dtype=torch.float32)),
             SampleBatch.OBSERVATION_NEXTS: self._cast_obs(obs_next),
             SampleBatch.EPS_ID: torch.from_numpy(self._episode_ids.copy()),
         }
@@ -155,9 +151,7 @@ class EnvironmentLoop:
     def _sample_policy(self, _: Observation) -> ActionAgentInfoTuple:
         if not self._is_vectorized:
             return (
-                torch.from_numpy(
-                    np.expand_dims(np.array(self.env.action_space.sample()), 0)
-                ),
+                torch.from_numpy(np.expand_dims(np.array(self.env.action_space.sample()), 0)),
                 {},
             )
         return torch.tensor(self.env.action_space.sample()), {}

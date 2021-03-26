@@ -16,12 +16,7 @@ class SampleBatch(dict):
     def __init__(self, _dict: Dict[str, torch.Tensor]) -> None:
         assert len(_dict) > 0
         for k, v in _dict.items():
-            assert (
-                len(v.shape) >= 1
-            ), f"SampleBatch assumes a input are indexable. Please batch your input for {k} it has shape {v.shape}"
-            assert isinstance(
-                v, torch.Tensor
-            ), "A sample batch should only contain tensors."
+            assert isinstance(v, torch.Tensor), "A sample batch should only contain tensors."
 
         super().__init__(_dict)
 

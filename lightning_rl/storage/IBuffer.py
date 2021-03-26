@@ -1,7 +1,5 @@
 import abc
-from typing import Union
 
-import torch
 from torch.utils.data import Dataset
 
 from lightning_rl.environmental.SampleBatch import SampleBatch
@@ -9,7 +7,7 @@ from lightning_rl.environmental.SampleBatch import SampleBatch
 
 class Buffer(abc.ABC, Dataset):
     @abc.abstractmethod
-    def __getitem__(self, idxs: Union[int, torch.Tensor]) -> SampleBatch:
+    def __getitem__(self, idxs: int) -> SampleBatch:
         pass
 
     @abc.abstractmethod

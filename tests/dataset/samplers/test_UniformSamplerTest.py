@@ -22,7 +22,7 @@ class UniformSamplerTest(unittest.TestCase):
         dataset_size = 2
         buffer = mock.MagicMock()
         buffer.__len__.return_value = dataset_size
-        samples_per_epoch = 5 * dataset_size
+        samples_per_epoch = 50 * dataset_size
         sampler = UniformSampler(buffer, samples_per_epoch)
 
         samples = list(iter(sampler))

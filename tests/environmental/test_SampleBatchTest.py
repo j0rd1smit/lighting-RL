@@ -18,12 +18,6 @@ class SampleBatchTest(unittest.TestCase):
     def test_cannot_create_empty_sample_batch(self):
         self.assertRaises(AssertionError, lambda: SampleBatch({}))
 
-    def test_cannot_create_empty_sample_unbatched_float(self):
-        self.assertRaises(
-            AssertionError,
-            lambda: SampleBatch({SampleBatch.OBSERVATIONS: torch.tensor(1.0)}),
-        )
-
     @parameterized.expand(
         [
             [1],
@@ -45,9 +39,7 @@ class SampleBatchTest(unittest.TestCase):
             [SampleBatch.DONES, 1, 5, 3],
         ]
     )
-    def test_concat_samples_stack_shapes_correctly(
-        self, key, batch_size_one, batch_size_other, obs_dim
-    ):
+    def test_concat_samples_stack_shapes_correctly(self, key, batch_size_one, batch_size_other, obs_dim):
         batch_one = SampleBatch({key: torch.rand([batch_size_one, obs_dim])})
         batch_other = SampleBatch({key: torch.rand([batch_size_other, obs_dim])})
 
@@ -65,12 +57,8 @@ class SampleBatchTest(unittest.TestCase):
         batch_size_one = 2
         batch_size_other = 2
         obs_dim = 1
-        batch_one = SampleBatch(
-            {key: torch.rand([batch_size_one, obs_dim]) for key in keys}
-        )
-        batch_other = SampleBatch(
-            {key: torch.rand([batch_size_other, obs_dim]) for key in keys}
-        )
+        batch_one = SampleBatch({key: torch.rand([batch_size_one, obs_dim]) for key in keys})
+        batch_other = SampleBatch({key: torch.rand([batch_size_other, obs_dim]) for key in keys})
 
         batch = SampleBatch.concat_samples([batch_one, batch_other])
         for key in keys:
@@ -103,9 +91,7 @@ class SampleBatchTest(unittest.TestCase):
         ]
     )
     def test_split_by_episode_can_handle_a_multiple_epsidode(self, n_episodes):
-        episodes = [
-            self._create_dummy_sample_batch(2, episode_id=i) for i in range(n_episodes)
-        ]
+        episodes = [self._create_dummy_sample_batch(2, episode_id=i) for i in range(n_episodes)]
         batch = SampleBatch.concat_samples(episodes)
         batch_per_episode = batch.split_by_episode()
         self.assertEqual(len(batch_per_episode), n_episodes)

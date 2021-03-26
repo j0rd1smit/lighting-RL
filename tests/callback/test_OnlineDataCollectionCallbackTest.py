@@ -105,6 +105,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
     def test_can_skip_prefill_buffer_before_training_if_not_needed(self):
         buffer = mock.Mock()
         buffer.__len__ = mock.Mock(return_value=0)
+        buffer.capacity = 10
         env_loop = self._create_env_loop_mock(1)
 
         callback = OnlineDataCollectionCallback(
@@ -130,6 +131,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
     ):
         buffer = mock.Mock()
         buffer.__len__ = mock.Mock(return_value=buffer_size)
+        buffer.capacity = buffer_size
         env_loop = self._create_env_loop_mock(1)
 
         callback = OnlineDataCollectionCallback(
@@ -167,7 +169,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
         )
 
         self._mock_env_loop_step(env_loop, n_envs, n_steps=n_samples_per_step)
-        callback.on_batch_start(None, None)
+        callback.on_batch_end(None, None)
 
         self.assertTrue(
             len(buffer) >= n_samples_per_step,
@@ -188,7 +190,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
         )
 
         self._mock_env_loop_step(env_loop, 1, n_steps=1)
-        callback.on_batch_start(None, None)
+        callback.on_batch_end(None, None)
 
         buffer.clear.assert_called_once()
 
@@ -206,7 +208,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
         )
 
         self._mock_env_loop_step(env_loop, 1, n_steps=1)
-        callback.on_batch_start(None, None)
+        callback.on_batch_end(None, None)
 
         buffer.clear.assert_not_called()
 

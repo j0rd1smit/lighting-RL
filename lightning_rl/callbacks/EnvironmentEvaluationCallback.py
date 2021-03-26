@@ -56,7 +56,7 @@ class EnvironmentEvaluationCallback(Callback):
 
     def on_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self.env_loop.seed(self.seed)
-        was_in_training_mode = pl_module.training_mode
+        was_in_training_mode = pl_module.training
         if self.to_eval:
             pl_module.eval()
 
@@ -88,7 +88,7 @@ class EnvironmentEvaluationCallback(Callback):
 
     def _eval_env_run(self) -> Tuple[List[float], List[float]]:
         dones = [False for _ in range(self.env_loop.n_enviroments)]
-        returns = [0 for _ in range(self.env_loop.n_enviroments)]
+        returns = [0.0 for _ in range(self.env_loop.n_enviroments)]
         lengths = [0 for _ in range(self.env_loop.n_enviroments)]
 
         while not all(dones):

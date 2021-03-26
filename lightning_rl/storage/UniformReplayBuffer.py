@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 
 import torch
 
@@ -9,9 +9,7 @@ from lightning_rl.storage.IBuffer import DynamicBuffer
 class UniformReplayBuffer(DynamicBuffer):
     EXCLUDED_KEYS = [SampleBatch.IDX]
 
-    def __init__(
-        self, capacity: int, buffer: Optional[Dict[str, torch.Tensor]] = None
-    ) -> None:
+    def __init__(self, capacity: int, buffer: Optional[Dict[str, torch.Tensor]] = None) -> None:
         self._capacity = capacity
 
         self.buffer: Dict[str, torch.Tensor] = {} if buffer is None else buffer
@@ -23,9 +21,7 @@ class UniformReplayBuffer(DynamicBuffer):
         return self._capacity
 
     def append(self, batch: SampleBatch) -> None:
-        assert (
-            len(batch[SampleBatch.REWARDS].shape) > 0
-        ), "Assumes that input indexable, please batch the results"
+        assert len(batch[SampleBatch.REWARDS].shape) > 0, "Assumes that input indexable, please batch the results"
 
         if len(self.buffer) == 0:
             for k, v in batch.items():
@@ -40,15 +36,11 @@ class UniformReplayBuffer(DynamicBuffer):
             self.pointer = (self.pointer + 1) % self.capacity
             self.size = min(self.size + 1, self.capacity)
 
-    def __getitem__(self, idxs: Union[int, torch.Tensor]) -> SampleBatch:
-        if isinstance(idxs, int):
-            idxs = torch.tensor([idxs])
-
-        assert torch.all(idxs < self.size)
-
-        assert isinstance(idxs, torch.Tensor)
+    def __getitem__(self, idxs: int) -> SampleBatch:
+        assert isinstance(idxs, int)
+        assert idxs < len(self), f"{idxs} > {len(self)}"
         batch = {k: self.buffer[k][idxs] for k in self.buffer}
-        batch[SampleBatch.IDX] = idxs
+        batch[SampleBatch.IDX] = torch.tensor(idxs)
 
         return SampleBatch(batch)
 

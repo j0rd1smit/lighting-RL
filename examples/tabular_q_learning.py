@@ -3,13 +3,13 @@ from typing import Dict, Optional
 import gym
 import pytorch_lightning as pl
 import torch
-from gym.vector import SyncVectorEnv, VectorEnv
+from gym.vector import VectorEnv
 from torch.optim import Optimizer
 
 from lightning_rl.callbacks.EnvironmentEvaluationCallback import (
     EnvironmentEvaluationCallback,
 )
-from lightning_rl.dataset.dataset_builder import off_policy_dataset
+from lightning_rl.dataset.dataset_builder import on_policy_dataset
 from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
 from lightning_rl.environmental.SampleBatch import SampleBatch
 from lightning_rl.types import Action
@@ -41,14 +41,12 @@ class QTableModel(pl.LightningModule):
 
     def select_actions(self, x: torch.Tensor) -> Action:
         actions = torch.argmax(self.q_values[x], 1)
-        return list(map(int, actions)), {}
+        return actions, {}
 
     def select_online_actions(self, x: torch.Tensor) -> Action:
         if torch.rand([1])[0] < 0.25:
-            actions = torch.randint(
-                low=0, high=self.n_actions - 1, size=x.shape[:1]
-            ).numpy()
-            return list(map(int, actions)), {}
+            actions = torch.randint(low=0, high=self.n_actions - 1, size=x.shape[:1])
+            return actions, {}
         else:
             return self.select_actions(x)
 
@@ -84,58 +82,45 @@ class QTableModel(pl.LightningModule):
 
 
 def main():
-    import numpy as np
-
     env_name = "Taxi-v3"
-    # env = gym.make(env_name)
-    env_eval = gym.make(env_name)
-    env = SyncVectorEnv([lambda: gym.make("Taxi-v3") for _ in range(5)])
+    env = gym.make(env_name)
 
-    n_observations = (
-        env.observation_space.n
-        if not isinstance(env, VectorEnv)
-        else env.envs[0].observation_space.n
-    )
-    n_actions = (
-        env.action_space.n if not isinstance(env, VectorEnv) else env.action_space[0].n
-    )
+    n_observations = env.observation_space.n if not isinstance(env, VectorEnv) else env.envs[0].observation_space.n
+    n_actions = env.action_space.n if not isinstance(env, VectorEnv) else env.action_space[0].n
     model = QTableModel(
         n_observations=n_observations,
         n_actions=n_actions,
     )
 
-    data_module = off_policy_dataset(capacity=100, batch_size=10, steps_per_epoch=100)
-    online_step_callback = data_module.create_online_data_collection_callback(
-        env,
+    """
+    data_module, callbacks = off_policy_dataset(
+        lambda: gym.make(env_name),
         model.select_online_actions,
-        n_samples_per_step=10,
+        capacity=100,
         n_populate_steps=100,
+        steps_per_epoch=250,
     )
-    env_loop = EnvironmentLoop(env_eval, model.select_actions)
+    """
+    data_module, callbacks = on_policy_dataset(
+        lambda: gym.make(env_name),
+        model.select_online_actions,
+        batch_size=32,
+        steps_per_epoch=250,
+    )
+
+    env_loop = EnvironmentLoop(env, model.select_actions)
     eval_callback = EnvironmentEvaluationCallback(env_loop)
 
     trainer = pl.Trainer(
         gpus=0,
         fast_dev_run=False,
-        max_epochs=250,
-        callbacks=[online_step_callback, eval_callback],
+        max_epochs=50,
+        callbacks=callbacks + [eval_callback],
         logger=False,
         checkpoint_callback=False,
     )
 
     trainer.fit(model, data_module)
-
-    env = gym.make(env_name)
-    o = env.reset()
-    d = False
-    r_total = 0
-    while not d:
-        a, _ = model.select_actions(np.expand_dims(np.array(o), 0))
-        o, r, d, _ = env.step(a[0])
-        env.render()
-        r_total += r
-
-    print(r_total)
 
 
 if __name__ == "__main__":
