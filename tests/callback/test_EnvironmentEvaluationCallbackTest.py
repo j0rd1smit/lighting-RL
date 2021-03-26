@@ -1,152 +1,155 @@
 import unittest
 from unittest import mock
 
-import gym
-from gym.vector import SyncVectorEnv
+import torch
 from parameterized import parameterized
 
 from lightning_rl.callbacks.EnvironmentEvaluationCallback import (
     EnvironmentEvaluationCallback,
 )
-from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
+from lightning_rl.environmental.SampleBatch import SampleBatch
 
 
 class EnvironmentEvaluationCallbackTest(unittest.TestCase):
     @parameterized.expand(
         [
-            [0, None],
-            [1, None],
-            [1, 5],
-            [1, 10],
+            ["1_times", 1],
+            ["2_times", 2],
+            ["3_times", 3],
         ]
     )
-    def test_with_seeded_always_eval_on_the_same_instances(self, seed, n_envs):
-        n_eval_episodes = 10
-        env_loop = self._create_env_loop(n_envs=n_envs)
-
-        return_mapper_mock = mock.Mock()
-        return_mappers = {"": return_mapper_mock}
-
-        length_mapper_mock = mock.Mock()
-        length_mappers = {"": length_mapper_mock}
+    def test_if_seed_is_provided_it_will_seed_the_loop_before_every_run(self, _, n):
+        n_eval_episodes = 1
+        seed = 0
+        env_loop = self._create_env_loop_mock(n_eval_episodes)
 
         callback = EnvironmentEvaluationCallback(
             env_loop,
             n_eval_episodes=n_eval_episodes,
-            return_mappers=return_mappers,
-            length_mappers=length_mappers,
             seed=seed,
         )
 
-        # Eval for the first time to get init value
-        callback.on_epoch_end(mock.Mock(), mock.Mock())
-
-        return_mapper_mock.assert_called()
-        first_eval_return = return_mapper_mock.call_args.args[0]
-
-        length_mapper_mock.assert_called()
-        first_eval_length = length_mapper_mock.call_args.args[0]
-
-        # Verify that it the return and length don't change if the seed and policy remain fixed.
-        for i in range(1, 3):
-            return_mapper_mock.reset_mock()
-            length_mapper_mock.reset_mock()
-
+        for i in range(1, n):
+            self._mock_env_loop_step(env_loop, n_eval_episodes)
             callback.on_epoch_end(mock.Mock(), mock.Mock())
 
-            return_mapper_mock.assert_called()
-            self.assertEqual(
-                list(first_eval_return),
-                list(return_mapper_mock.call_args.args[0]),
-                msg=f"Returns are no longer consistent for the same seed. For the {i}th eval.",
-            )
+            self.assertEqual(env_loop.seed.call_count, i)
+            env_loop.seed.assert_called_with(seed)
 
-            length_mapper_mock.assert_called()
-            self.assertEqual(
-                list(first_eval_length),
-                list(length_mapper_mock.call_args.args[0]),
-                msg=f"Lengths are no longer consistent for the same seed. For the {i}th eval.",
-            )
+    def _create_env_loop_mock(self, n_eval_episodes):
+        n_envs = n_eval_episodes
 
-    def _create_env_loop(self, *, n_envs=None):
-        if n_envs is not None:
-            env = SyncVectorEnv(
-                [lambda: gym.make("CartPole-v0") for _ in range(n_envs)]
-            )
-        else:
-            env = gym.make("CartPole-v0")
+        env_loop = mock.Mock()
+        env_loop.n_enviroments = n_envs
 
-        def policy(_):
-            return env.action_space.sample(), {}
+        return env_loop
 
-        return EnvironmentLoop(env, policy)
+    def _mock_env_loop_step(self, env_loop_mock, n_envs, n_steps=2):
+        assert n_steps >= 1
+        return_values = [self._create_sample_batch(n_envs) for _ in range(n_steps - 1)]
+        return_values.append(
+            self._create_sample_batch(n_envs, dones=True),
+        )
+
+        env_loop_mock.step.side_effect = return_values
+
+        return return_values
+
+    def _create_sample_batch(self, n_envs, dones=False, episode_ids=None):
+        if dones == True:
+            dones = [True for _ in range(n_envs)]
+        if dones == False:
+            dones = [False for _ in range(n_envs)]
+
+        if episode_ids is None:
+            episode_ids = list(range(n_envs))
+
+        return SampleBatch(
+            {
+                SampleBatch.OBSERVATIONS: torch.rand([n_envs, 1]),
+                SampleBatch.ACTIONS: torch.rand([n_envs, 1]),
+                SampleBatch.REWARDS: torch.rand([n_envs]),
+                SampleBatch.DONES: torch.tensor(dones).float(),
+                SampleBatch.OBSERVATION_NEXTS: torch.rand([n_envs, 1]),
+                SampleBatch.EPS_ID: torch.tensor(episode_ids).long(),
+            }
+        )
 
     @parameterized.expand([[True], [False]])
     def test_can_enable_eval_mode(self, was_in_training_mode):
-        env_loop = self._create_env_loop()
-        callback = EnvironmentEvaluationCallback(
-            env_loop,
-            to_eval=True,
-        )
-        trainer = mock.Mock()
+        n_eval_episodes = 1
+        env_loop = self._create_env_loop_mock(n_eval_episodes)
         pl_module = mock.Mock()
         pl_module.training_mode = was_in_training_mode
 
-        callback.on_epoch_end(trainer, pl_module)
+        callback = EnvironmentEvaluationCallback(
+            env_loop, to_eval=True, n_eval_episodes=n_eval_episodes
+        )
+        self._mock_env_loop_step(env_loop, n_eval_episodes)
+        callback.on_epoch_end(mock.Mock(), pl_module)
 
         pl_module.eval.assert_called_once()
         if was_in_training_mode:
             pl_module.train.assert_called_once()
 
-    def test_measure_length_correctly(self):
-        env = mock.Mock(wraps=gym.make("CartPole-v0"))
+    @parameterized.expand(
+        [
+            ["n_steps=1_n_eval_episodes=1", 1, 1],
+            ["n_steps=1_n_eval_episodes=2", 1, 2],
+            ["n_steps=2_n_eval_episodes=1", 2, 1],
+            ["n_steps=2_n_eval_episodes=1", 2, 2],
+            ["n_steps=3_n_eval_episodes=1", 3, 1],
+        ]
+    )
+    def test_measure_length_correctly(self, _, n_steps, n_eval_episodes):
+        env_loop = self._create_env_loop_mock(n_eval_episodes)
 
-        def policy(_):
-            return 0, {}
-
-        env_loop = EnvironmentLoop(env, policy)
+        def _test_case_callback(lengths):
+            self.assertListEqual(
+                list(lengths), [n_steps for _ in range(n_eval_episodes)]
+            )
 
         callback = EnvironmentEvaluationCallback(
             env_loop,
             n_eval_episodes=1,
-            length_mappers={"": lambda o: o[0]},
+            length_mappers={"": _test_case_callback},
             return_mappers={},
             mean_return_in_progress_bar=False,
         )
-        pl_module = mock.Mock()
-        callback.on_epoch_end(mock.Mock(), pl_module)
+        self._mock_env_loop_step(env_loop, n_eval_episodes, n_steps=n_steps)
+        callback.on_epoch_end(mock.Mock(), mock.Mock())
 
-        # test case assume only one call and achieves this using custom mappers
-        pl_module.log.assert_called_once()
+    @parameterized.expand(
+        [
+            ["n_eval_episodes=1_n_steps=2", 1, 2],
+            ["n_eval_episodes=2_n_steps=2", 2, 2],
+            ["n_eval_episodes=2_n_steps=4", 2, 4],
+        ]
+    )
+    def test_measure_return_correctly(self, _, n_eval_episodes, n_steps):
+        env_loop = self._create_env_loop_mock(n_eval_episodes)
 
-        times_called = env.step.call_count
-        logged_length = pl_module.log.call_args.args[1]
-        self.assertEqual(times_called, logged_length)
+        side_effects = self._mock_env_loop_step(
+            env_loop, n_eval_episodes, n_steps=n_steps
+        )
 
-    def test_measure_return_correctly(self):
-        env = mock.Mock(wraps=gym.make("CartPole-v0"))
-
-        def policy(_):
-            return 0, {}
-
-        env_loop = EnvironmentLoop(env, policy)
+        def _test_case_callback(rewards):
+            expected_rewards = list(
+                sum(
+                    batch[SampleBatch.REWARDS].double() for batch in side_effects
+                ).numpy()
+            )
+            self.assertListEqual(list(rewards), expected_rewards)
 
         callback = EnvironmentEvaluationCallback(
             env_loop,
             n_eval_episodes=1,
             length_mappers={},
-            return_mappers={"": lambda o: o[0]},
+            return_mappers={"": _test_case_callback},
             mean_return_in_progress_bar=False,
         )
-        pl_module = mock.Mock()
-        callback.on_epoch_end(mock.Mock(), pl_module)
 
-        # test case assume only one call and achieves this using custom mappers
-        pl_module.log.assert_called_once()
-
-        times_called = env.step.call_count  # 1 reward per time step
-        logged_return = pl_module.log.call_args.args[1]
-        self.assertEqual(times_called, logged_return)
+        callback.on_epoch_end(mock.Mock(), mock.Mock())
 
 
 if __name__ == "__main__":

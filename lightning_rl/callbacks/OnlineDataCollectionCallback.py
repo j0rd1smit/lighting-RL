@@ -19,7 +19,7 @@ class OnlineDataCollectionCallback(Callback):
         n_populate_steps: int,
         post_process_function: Optional[PostProcessFunction] = None,
         *,
-        clear_buffer_after_batch: bool = False,
+        clear_buffer_before_gather: bool = False,
     ) -> None:
         self.buffer = buffer
         self.env_loop = env_loop
@@ -27,7 +27,7 @@ class OnlineDataCollectionCallback(Callback):
         self.n_samples_per_step = n_samples_per_step
         self.n_populate_steps = n_populate_steps
         self.post_process_function = post_process_function
-        self.clear_buffer_after_batch = clear_buffer_after_batch
+        self.clear_buffer_before_gather = clear_buffer_before_gather
 
     def on_fit_start(self, trainer: Any, pl_module: LightningModule) -> None:
         while len(self.buffer) < self.n_populate_steps:
@@ -51,6 +51,6 @@ class OnlineDataCollectionCallback(Callback):
             self.buffer.append(batch_per_episode)
 
     def on_batch_start(self, trainer: Any, pl_module: LightningModule) -> None:
-        if self.clear_buffer_after_batch:
+        if self.clear_buffer_before_gather:
             self.buffer.clear()
         self._add_batch_to_buffer()

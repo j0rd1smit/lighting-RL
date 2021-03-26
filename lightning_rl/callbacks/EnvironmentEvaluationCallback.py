@@ -88,17 +88,17 @@ class EnvironmentEvaluationCallback(Callback):
 
     def _eval_env_run(self) -> Tuple[List[float], List[float]]:
         dones = [False for _ in range(self.env_loop.n_enviroments)]
-        returns = np.array([0 for _ in range(self.env_loop.n_enviroments)])
-        lengths = np.array([0 for _ in range(self.env_loop.n_enviroments)])
+        returns = [0 for _ in range(self.env_loop.n_enviroments)]
+        lengths = [0 for _ in range(self.env_loop.n_enviroments)]
 
         while not all(dones):
             batch = self.env_loop.step()
+
             for i in range(self.env_loop.n_enviroments):
                 if dones[i]:
                     continue
-
-                dones[i] = batch[SampleBatch.DONES][i]
-                returns[i] += batch[SampleBatch.REWARDS][i]
+                dones[i] = bool(batch[SampleBatch.DONES][i])
+                returns[i] = returns[i] + float(batch[SampleBatch.REWARDS][i])
                 lengths[i] += 1
 
         return list(lengths), list(returns)

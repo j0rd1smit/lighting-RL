@@ -97,8 +97,8 @@ class EnvironmentLoopTest(unittest.TestCase):
 
     @parameterized.expand(
         [
-            ["n_env=1_n_steps=1", 1, 1],
-            ["n_env=1_n_steps=1", 1, 2],
+            ["n_envs=1_n_steps=1", 1, 1],
+            ["n_envs=1_n_steps=1", 1, 2],
             ["env=2_n_steps=1", 2, 1],
             ["env=2_n_steps=2", 2, 2],
         ]
@@ -125,8 +125,8 @@ class EnvironmentLoopTest(unittest.TestCase):
 
     @parameterized.expand(
         [
-            ["n_env=1_n_steps=1", 1, 1],
-            ["n_env=1_n_steps=1", 1, 2],
+            ["n_envs=1_n_steps=1", 1, 1],
+            ["n_envs=1_n_steps=1", 1, 2],
             ["env=2_n_steps=1", 2, 1],
             ["env=2_n_steps=2", 2, 2],
         ]
