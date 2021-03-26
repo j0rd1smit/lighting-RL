@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import torch
 
@@ -9,12 +9,18 @@ from lightning_rl.storage.IBuffer import DynamicBuffer
 class UniformReplayBuffer(DynamicBuffer):
     EXCLUDED_KEYS = [SampleBatch.IDX]
 
-    def __init__(self, capacity: int) -> None:
-        self.capacity = capacity
+    def __init__(
+        self, capacity: int, buffer: Optional[Dict[str, torch.Tensor]] = None
+    ) -> None:
+        self._capacity = capacity
 
-        self.buffer: Dict[str, torch.Tensor] = {}
-        self.pointer = 0
-        self.size = 0
+        self.buffer: Dict[str, torch.Tensor] = {} if buffer is None else buffer
+        self.pointer = min(len(self.buffer), self.capacity)
+        self.size = min(len(self.buffer), self.capacity)
+
+    @property
+    def capacity(self) -> int:
+        return self._capacity
 
     def append(self, batch: SampleBatch) -> None:
         assert (

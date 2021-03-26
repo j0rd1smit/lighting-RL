@@ -1,12 +1,13 @@
 from typing import Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
+import torch
 
 Seed = Optional[int]
 
-Action = Union[float, np.ndarray]
-Observation = Union[float, np.ndarray]
+Action = torch.Tensor
+Observation = Union[np.ndarray]
 
 
-ActionAgentInfoTuple = Tuple[Action, Dict]
-Policy = Callable[[Observation], ActionAgentInfoTuple]
+ActionAgentInfoTuple = Tuple[torch.Tensor, Dict[str, torch.Tensor]]
+Policy = Callable[[torch.Tensor], ActionAgentInfoTuple]

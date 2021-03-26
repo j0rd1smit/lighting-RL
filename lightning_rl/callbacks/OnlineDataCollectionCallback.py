@@ -50,24 +50,7 @@ class OnlineDataCollectionCallback(Callback):
 
             self.buffer.append(batch_per_episode)
 
-    def on_train_batch_start(
-        self,
-        trainer: Any,
-        pl_module: LightningModule,
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int,
-    ) -> None:
-        self._add_batch_to_buffer()
-
-    def on_train_batch_end(
-        self,
-        trainer: Any,
-        pl_module: LightningModule,
-        outputs: Any,
-        batch: Any,
-        batch_idx: int,
-        dataloader_idx: int,
-    ) -> None:
+    def on_batch_start(self, trainer: Any, pl_module: LightningModule) -> None:
         if self.clear_buffer_after_batch:
             self.buffer.clear()
+        self._add_batch_to_buffer()

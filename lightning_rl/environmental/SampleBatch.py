@@ -18,7 +18,7 @@ class SampleBatch(dict):
         for k, v in _dict.items():
             assert (
                 len(v.shape) >= 1
-            ), "SampleBatch assumes a input are indexable. Please batch your input"
+            ), f"SampleBatch assumes a input are indexable. Please batch your input for {k} it has shape {v.shape}"
             assert isinstance(
                 v, torch.Tensor
             ), "A sample batch should only contain tensors."

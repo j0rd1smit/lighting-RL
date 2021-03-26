@@ -63,7 +63,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
             clear_buffer_after_batch=True,
         )
 
-        callback.on_train_batch_end(None, None, None, None, None, None)
+        callback.on_batch_start(None, None)
 
         buffer.clear.assert_called()
 
@@ -79,7 +79,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
             clear_buffer_after_batch=False,
         )
 
-        callback.on_train_batch_end(None, None, None, None, None, None)
+        callback.on_batch_start(None, None)
 
         buffer.clear.assert_not_called()
 
@@ -105,7 +105,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
             post_process_function,
         )
 
-        callback.on_train_batch_start(None, None, None, None, None)
+        callback.on_batch_start(None, None)
 
         self.assertEqual(len(buffer), n_samples_per_step)
 
@@ -136,7 +136,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
             post_process_function=None,
         )
 
-        callback.on_train_batch_start(None, None, None, None, None)
+        callback.on_batch_start(None, None)
 
         stored_batch = buffer[0]
         expected_batch = env_loop2.step()
@@ -162,7 +162,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
             post_process_function=post_process_function,
         )
 
-        callback.on_train_batch_start(None, None, None, None, None)
+        callback.on_batch_start(None, None)
 
         torch.testing.assert_allclose(
             buffer[0][SampleBatch.REWARDS],
@@ -188,7 +188,7 @@ class OnlineDataCollectionCallbackTest(unittest.TestCase):
             post_process_function=post_process_function,
         )
 
-        callback.on_train_batch_start(None, None, None, None, None)
+        callback.on_batch_start(None, None)
 
 
 if __name__ == "__main__":

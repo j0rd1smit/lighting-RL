@@ -25,3 +25,8 @@ class DynamicBuffer(Buffer):
     @abc.abstractmethod
     def clear(self) -> None:
         pass
+
+    @property
+    @abc.abstractmethod
+    def capacity(self) -> int:
+        pass

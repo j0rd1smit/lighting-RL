@@ -1,8 +1,9 @@
-from typing import Union
+from typing import Callable, Union
 
 import gym
 import numpy as np
 import torch
+from gym.spaces import Box, Discrete, Tuple
 from gym.vector import AsyncVectorEnv, VectorEnv
 
 from lightning_rl.environmental.SampleBatch import SampleBatch
@@ -14,14 +15,33 @@ class EnvironmentLoop:
         self.env = env
         self.policy = policy
 
-        self._obs = self.env.reset()
+        self._obs = np.array(self.env.reset())
 
         self._is_vectorized = isinstance(
             env,
             VectorEnv,
         )
+
         self._done = not self._is_vectorized
         self._episode_ids = np.arange(self.n_enviroments, dtype=np.int64)
+
+        if self._is_vectorized:
+            self._expected_observation_shape = self.env.observation_space.shape
+        else:
+            self._expected_observation_shape = (1,) + self.env.observation_space.shape
+            self._obs = np.expand_dims(self._obs, 0)
+
+        if isinstance(env.action_space, Discrete):
+            self._is_discrete_action_space = True
+        elif isinstance(env.action_space, Box):
+            self._is_discrete_action_space = False
+        elif isinstance(env.action_space, Tuple):
+            self._is_discrete_action_space = isinstance(
+                env.envs[0].action_space,
+                Discrete,
+            )
+        else:
+            raise Exception("Unknown action space", env.action_space)
 
         assert not isinstance(env, AsyncVectorEnv), "Async is not supported."
 
@@ -38,39 +58,58 @@ class EnvironmentLoop:
 
     def reset(self) -> None:
         self._obs = self.env.reset()
+        if not self._is_vectorized:
+            self._obs = np.expand_dims(self._obs, 0)
         self._done = False
 
     def step(self) -> SampleBatch:
-        return self._step(self.policy)
+        return self._step(self._policy)
 
-    def _step(self, policy: Policy) -> SampleBatch:
+    def _policy(self, obs: Observation) -> ActionAgentInfoTuple:
+        obs_tensor = torch.from_numpy(obs)
+
+        with torch.no_grad():
+            action, agent_info = self.policy(obs_tensor)
+            action = action.cpu()
+            agent_info = {k: v.cpu() for k, v in agent_info.items()}
+
+            return action, agent_info
+
+    def _step(
+        self, policy: Callable[[Observation], ActionAgentInfoTuple]
+    ) -> SampleBatch:
         if not self._is_vectorized and self._done:
             self.reset()
 
-        obs = self._obs
-        action, agent_info = policy(obs)
+        obs = np.array(self._obs)
         assert (
-            isinstance(action, np.ndarray)
-            or isinstance(action, tuple)
-            or isinstance(action, list)
-            or isinstance(action, float)
-            or isinstance(action, int)
-        ), f"type = {type(action)}"
+            obs.shape == self._expected_observation_shape
+        ), f"{ obs.shape} != {self._expected_observation_shape}"
 
-        obs_next, r, d, _ = self.env.step(action)
+        action, agent_info = policy(obs)
+        _action = action.numpy() if isinstance(action, torch.Tensor) else action
+
+        if not self._is_vectorized:
+            obs_next, r, d, _ = self.env.step(_action[0])
+        elif self._is_discrete_action_space:
+            obs_next, r, d, _ = self.env.step(list(map(int, _action)))
+        else:
+            obs_next, r, d, _ = self.env.step(_action)
+
+        if not self._is_vectorized:
+            obs_next = np.expand_dims(obs_next, 0)
+            assert obs_next.shape == self._expected_observation_shape
 
         batch = {
-            SampleBatch.OBSERVATIONS: self._batch_if_needed(self._cast_obs(obs)),
-            SampleBatch.ACTIONS: self._batch_if_needed(torch.tensor(action)),
+            SampleBatch.OBSERVATIONS: self._cast_obs(obs),
+            SampleBatch.ACTIONS: action,
             SampleBatch.REWARDS: self._batch_if_needed(
                 torch.tensor(r, dtype=torch.float32)
             ),
             SampleBatch.DONES: self._batch_if_needed(
                 torch.tensor(d, dtype=torch.float32)
             ),
-            SampleBatch.OBSERVATION_NEXTS: self._batch_if_needed(
-                self._cast_obs(obs_next)
-            ),
+            SampleBatch.OBSERVATION_NEXTS: self._cast_obs(obs_next),
             SampleBatch.EPS_ID: torch.from_numpy(self._episode_ids.copy()),
         }
 
@@ -83,6 +122,8 @@ class EnvironmentLoop:
             self._done = d
         if np.any(d):
             self._update_episodes_ids_if_needed(d)
+
+        self._obs = obs_next
 
         return SampleBatch(batch)
 
@@ -112,4 +153,11 @@ class EnvironmentLoop:
         return self._step(self._sample_policy)
 
     def _sample_policy(self, _: Observation) -> ActionAgentInfoTuple:
-        return self.env.action_space.sample(), {}
+        if not self._is_vectorized:
+            return (
+                torch.from_numpy(
+                    np.expand_dims(np.array(self.env.action_space.sample()), 0)
+                ),
+                {},
+            )
+        return torch.tensor(self.env.action_space.sample()), {}

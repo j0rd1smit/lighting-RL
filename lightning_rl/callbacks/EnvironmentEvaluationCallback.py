@@ -56,7 +56,6 @@ class EnvironmentEvaluationCallback(Callback):
 
     def on_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
         self.env_loop.seed(self.seed)
-
         was_in_training_mode = pl_module.training_mode
         if self.to_eval:
             pl_module.eval()
@@ -70,24 +69,22 @@ class EnvironmentEvaluationCallback(Callback):
             returns = returns + _returns
             lengths = lengths + _lengths
 
-        returns = np.array(returns)  # type: ignore
-        lengths = np.array(lengths)  # type: ignore
+        returns_arr = np.array(returns)
+        lengths_arr = np.array(lengths)
 
         if self.to_eval and was_in_training_mode:
             pl_module.train()
 
         for k, mapper in self.return_mappers.items():
-            v: Any = mapper(returns)  # type: ignore
+            v: Any = mapper(returns_arr)
             pl_module.log(self.logging_prefix + "/" + k, v, prog_bar=False)
 
         for k, mapper in self.length_mappers.items():
-            v: Any = mapper(lengths)  # type: ignore
+            v: Any = mapper(lengths_arr)  # type: ignore
             pl_module.log(self.logging_prefix + "/" + k, v, prog_bar=False)
 
         if self.mean_return_in_progress_bar:
-            pl_module.log(
-                "return", np.mean(returns), prog_bar=True, on_epoch=False, on_step=False
-            )
+            pl_module.log("return", np.mean(returns), prog_bar=True)
 
     def _eval_env_run(self) -> Tuple[List[float], List[float]]:
         dones = [False for _ in range(self.env_loop.n_enviroments)]
