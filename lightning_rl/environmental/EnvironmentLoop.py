@@ -110,7 +110,8 @@ class EnvironmentLoop:
         }
 
         if self.fetch_agent_info is not None:
-            agent_info = self.fetch_agent_info(batch)
+            with torch.no_grad():
+                agent_info = self.fetch_agent_info(batch)
 
             for k, v in agent_info.items():
                 assert isinstance(v, torch.Tensor)

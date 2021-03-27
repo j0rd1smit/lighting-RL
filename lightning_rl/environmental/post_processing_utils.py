@@ -30,7 +30,7 @@ def compute_advantages(
                 torch.zeros_like(batch[SampleBatch.REWARDS][0]).unsqueeze(0) + last_r,
             ]
         )
-        discounted_returns = discount_cumsum(rewards_plus_v, gamma)
+        discounted_returns = discount_cumsum(rewards_plus_v, gamma)[:-1]
 
         if use_critic:
             batch[Postprocessing.ADVANTAGES] = discounted_returns - batch[SampleBatch.VF_PREDS]

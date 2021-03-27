@@ -30,10 +30,6 @@ class QTableModel(pl.LightningModule):
         self.q_values = torch.ones([n_observations, n_actions])
 
     @property
-    def training_mode(self) -> bool:
-        return False
-
-    @property
     def automatic_optimization(self) -> bool:
         return False
 

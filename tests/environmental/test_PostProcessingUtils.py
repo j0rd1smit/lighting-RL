@@ -3,11 +3,7 @@ import unittest
 import torch
 from parameterized import parameterized
 
-from lightning_rl.environmental.post_processing_utils import (
-    compute_advantages,
-    discount_cumsum,
-    Postprocessing,
-)
+from lightning_rl.environmental.post_processing_utils import Postprocessing, compute_advantages, discount_cumsum
 from lightning_rl.environmental.SampleBatch import SampleBatch
 
 
@@ -25,6 +21,7 @@ class TestPostProcessingUtils(unittest.TestCase):
         answers = torch.tensor(answers, dtype=torch.float32)
 
         self.assertEqual(values.dtype, answers.dtype)
+        self.assertEqual(len(values), len(answers))
         torch.testing.assert_allclose(values, answers)
 
     @parameterized.expand(
@@ -39,33 +36,25 @@ class TestPostProcessingUtils(unittest.TestCase):
     )
     def test_compute_advantages_no_use_gae_no_critic(self, rewards, gamma, last_r):
 
-        batch = SampleBatch(
-            {SampleBatch.REWARDS: torch.tensor(rewards, dtype=torch.float32)}
-        )
+        batch = SampleBatch({SampleBatch.REWARDS: torch.tensor(rewards, dtype=torch.float32)})
         original_rewards = batch[SampleBatch.REWARDS]
 
-        batch = compute_advantages(
-            batch, last_r=last_r, gamma=gamma, use_gae=False, use_critic=False
-        )
+        batch = compute_advantages(batch, last_r=last_r, gamma=gamma, use_gae=False, use_critic=False)
 
-        torch.testing.assert_allclose(
-            batch[Postprocessing.ADVANTAGES],
-            discount_cumsum(
-                torch.tensor(rewards + [last_r], dtype=torch.float32), gamma
-            ),
+        self.assertEqual(
+            list(batch[Postprocessing.ADVANTAGES]),
+            list(discount_cumsum(torch.tensor(rewards + [last_r], dtype=torch.float32), gamma)[:-1]),
         )
 
     @parameterized.expand(
         [
-            [[0, 0, 1], [0, 0, 1, 1], 0.99, 0],
-            [[0, 1, 1], [0, 0, 0, 0], 0.99, 0],
-            [[0, 1, 1], [0, 0, 0, 0], 0.99, 1],
-            [[0, 0], [0, 0, 0], 0.99, 0],
+            [[0, 0, 1], [0, 0, 1], 0.99, 0],
+            [[0, 1, 1], [0, 0, 0], 0.99, 0],
+            [[0, 1, 1], [0, 0, 0], 0.99, 1],
+            [[0, 0], [0, 0], 0.99, 0],
         ]
     )
-    def test_compute_advantages_no_use_gae_critic(
-        self, rewards, vf_predict, gamma, last_r
-    ):
+    def test_compute_advantages_no_use_gae_critic(self, rewards, vf_predict, gamma, last_r):
 
         batch = SampleBatch(
             {
@@ -74,19 +63,12 @@ class TestPostProcessingUtils(unittest.TestCase):
             }
         )
 
-        batch = compute_advantages(
-            batch, last_r=last_r, gamma=gamma, use_gae=False, use_critic=True
-        )
-        discounted_return = discount_cumsum(
-            torch.tensor(rewards + [last_r], dtype=torch.float32), gamma
-        )
+        batch = compute_advantages(batch, last_r=last_r, gamma=gamma, use_gae=False, use_critic=True)
+        discounted_return = discount_cumsum(torch.tensor(rewards + [last_r], dtype=torch.float32), gamma)[:-1]
         expected_advantage = discounted_return - batch[SampleBatch.VF_PREDS]
-        torch.testing.assert_allclose(
-            batch[Postprocessing.ADVANTAGES], expected_advantage
-        )
-        torch.testing.assert_allclose(
-            batch[Postprocessing.VALUE_TARGETS], discounted_return
-        )
+
+        self.assertListEqual(list(batch[Postprocessing.ADVANTAGES]), list(expected_advantage))
+        self.assertListEqual(list(batch[Postprocessing.VALUE_TARGETS]), list(discounted_return))
 
 
 if __name__ == "__main__":
