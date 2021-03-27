@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 import gym
 import numpy as np
@@ -7,13 +7,14 @@ from gym.spaces import Box, Discrete, Tuple
 from gym.vector import AsyncVectorEnv, VectorEnv
 
 from lightning_rl.environmental.SampleBatch import SampleBatch
-from lightning_rl.types import ActionAgentInfoTuple, Observation, Policy, Seed
+from lightning_rl.types import FetchAgentInfo, Observation, Policy, Seed
 
 
 class EnvironmentLoop:
-    def __init__(self, env: gym.Env, policy: Policy) -> None:
+    def __init__(self, env: gym.Env, policy: Policy, fetch_agent_info: Optional[FetchAgentInfo] = None) -> None:
         self.env = env
         self.policy = policy
+        self.fetch_agent_info = fetch_agent_info
 
         self._obs = np.array(self.env.reset())
 
@@ -68,24 +69,23 @@ class EnvironmentLoop:
     def step(self) -> SampleBatch:
         return self._step(self._policy)
 
-    def _policy(self, obs: Observation) -> ActionAgentInfoTuple:
-        obs_tensor = torch.from_numpy(obs).float()
+    def _policy(self, obs: Observation) -> torch.Tensor:
+        obs_tensor = self._cast_obs(obs)
 
         with torch.no_grad():
-            action, agent_info = self.policy(obs_tensor)
+            action = self.policy(obs_tensor)
             action = action.cpu()
-            agent_info = {k: v.cpu() for k, v in agent_info.items()}
 
-            return action, agent_info
+            return action
 
-    def _step(self, policy: Callable[[Observation], ActionAgentInfoTuple]) -> SampleBatch:
+    def _step(self, policy: Callable[[Observation], torch.Tensor]) -> SampleBatch:
         if not self._is_vectorized and self._done:
             self.reset()
 
         obs = np.array(self._obs)
         assert obs.shape == self._expected_observation_shape, f"{ obs.shape} != {self._expected_observation_shape}"
 
-        action, agent_info = policy(obs)
+        action = policy(obs)
         _action = action.numpy() if isinstance(action, torch.Tensor) else action
         assert self._expected_action_shape == _action.shape, f"{self._expected_action_shape} != {_action.shape}"
 
@@ -109,10 +109,13 @@ class EnvironmentLoop:
             SampleBatch.EPS_ID: torch.from_numpy(self._episode_ids.copy()),
         }
 
-        for k, v in agent_info.items():
-            assert isinstance(v, torch.Tensor)
-            assert k not in batch
-            batch[k] = v
+        if self.fetch_agent_info is not None:
+            agent_info = self.fetch_agent_info(batch)
+
+            for k, v in agent_info.items():
+                assert isinstance(v, torch.Tensor)
+                assert k not in batch
+                batch[k] = v
 
         if not self._is_vectorized:
             self._done = d
@@ -148,10 +151,8 @@ class EnvironmentLoop:
     def sample(self) -> SampleBatch:
         return self._step(self._sample_policy)
 
-    def _sample_policy(self, _: Observation) -> ActionAgentInfoTuple:
+    def _sample_policy(self, _: Observation) -> torch.Tensor:
         if not self._is_vectorized:
-            return (
-                torch.from_numpy(np.expand_dims(np.array(self.env.action_space.sample()), 0)),
-                {},
-            )
-        return torch.tensor(self.env.action_space.sample()), {}
+            return torch.from_numpy(np.expand_dims(np.array(self.env.action_space.sample()), 0))
+
+        return torch.tensor(self.env.action_space.sample())

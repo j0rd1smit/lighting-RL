@@ -6,9 +6,7 @@ import torch
 from gym.vector import VectorEnv
 from torch.optim import Optimizer
 
-from lightning_rl.callbacks.EnvironmentEvaluationCallback import (
-    EnvironmentEvaluationCallback,
-)
+from lightning_rl.callbacks.EnvironmentEvaluationCallback import EnvironmentEvaluationCallback
 from lightning_rl.dataset.dataset_builder import on_policy_dataset
 from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
 from lightning_rl.environmental.SampleBatch import SampleBatch
@@ -41,12 +39,12 @@ class QTableModel(pl.LightningModule):
 
     def select_actions(self, x: torch.Tensor) -> Action:
         actions = torch.argmax(self.q_values[x], 1)
-        return actions, {}
+        return actions
 
     def select_online_actions(self, x: torch.Tensor) -> Action:
         if torch.rand([1])[0] < 0.25:
             actions = torch.randint(low=0, high=self.n_actions - 1, size=x.shape[:1])
-            return actions, {}
+            return actions
         else:
             return self.select_actions(x)
 
@@ -58,13 +56,12 @@ class QTableModel(pl.LightningModule):
     ) -> Dict[str, torch.Tensor]:
         td_errors = 0
         batch_size = len(batch[SampleBatch.OBSERVATION_NEXTS])
-
         for i in range(batch_size):
-            obs = batch[SampleBatch.OBSERVATIONS][i][0]
-            action = batch[SampleBatch.ACTIONS][i][0]
-            reward = batch[SampleBatch.REWARDS][i][0]
-            dones = batch[SampleBatch.DONES][i][0]
-            obs_next = batch[SampleBatch.OBSERVATION_NEXTS][i][0]
+            obs = batch[SampleBatch.OBSERVATIONS][i]
+            action = batch[SampleBatch.ACTIONS][i]
+            reward = batch[SampleBatch.REWARDS][i]
+            dones = batch[SampleBatch.DONES][i]
+            obs_next = batch[SampleBatch.OBSERVATION_NEXTS][i]
 
             q_current = self.q_values[obs][action]
             q_next = torch.max(self.q_values[obs_next])

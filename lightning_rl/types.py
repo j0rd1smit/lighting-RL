@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Union
 
 import numpy as np
 import torch
@@ -9,5 +9,5 @@ Action = torch.Tensor
 Observation = Union[np.ndarray]
 
 
-ActionAgentInfoTuple = Tuple[torch.Tensor, Dict[str, torch.Tensor]]
-Policy = Callable[[torch.Tensor], ActionAgentInfoTuple]
+Policy = Callable[[torch.Tensor], torch.Tensor]
+FetchAgentInfo = Callable[[Dict[str, torch.Tensor]], Dict[str, torch.Tensor]]

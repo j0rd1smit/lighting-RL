@@ -18,9 +18,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["n_steps=2", 2],
         ]
     )
-    def test_shapes_are_correct_env_with_discrete_obs_and_action_spaces(
-        self, _, n_steps
-    ):
+    def test_shapes_are_correct_env_with_discrete_obs_and_action_spaces(self, _, n_steps):
         env = gym.make("Taxi-v3")
 
         loop = EnvironmentLoop(env, self._create_discrite_policy(env))
@@ -52,20 +50,13 @@ class EnvironmentLoopTest(unittest.TestCase):
             expected_v = expected.get(k, default)
             self.assertEqual(v.dtype, expected_v, msg=f"{k} has an unexpected dtype!")
 
-    def _create_discrite_policy(self, env, agent_info=None):
-        n_actions = (
-            env.action_space.n
-            if not isinstance(env, VectorEnv)
-            else env.action_space[0].n
-        )
-
-        if agent_info is None:
-            agent_info = {}
+    def _create_discrite_policy(self, env):
+        n_actions = env.action_space.n if not isinstance(env, VectorEnv) else env.action_space[0].n
 
         def policy(x):
             actions = torch.randint(low=0, high=n_actions - 1, size=x.shape[:1])
 
-            return actions, agent_info
+            return actions
 
         return policy
 
@@ -75,9 +66,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["n_steps=2", 2],
         ]
     )
-    def test_shapes_are_correct_env_with_discrete_obs_and_action_spaces_sample(
-        self, _, n_steps
-    ):
+    def test_shapes_are_correct_env_with_discrete_obs_and_action_spaces_sample(self, _, n_steps):
         env = gym.make("Taxi-v3")
 
         loop = EnvironmentLoop(env, self._create_discrite_policy(env))
@@ -103,9 +92,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["env=2_n_steps=2", 2, 2],
         ]
     )
-    def test_shapes_are_correct_env_with_discrete_obs_and_action_spaces_vector_env(
-        self, _, n_envs, n_steps
-    ):
+    def test_shapes_are_correct_env_with_discrete_obs_and_action_spaces_vector_env(self, _, n_envs, n_steps):
         env = SyncVectorEnv([lambda: gym.make("Taxi-v3") for _ in range(n_envs)])
         loop = EnvironmentLoop(env, self._create_discrite_policy(env))
 
@@ -131,9 +118,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["env=2_n_steps=2", 2, 2],
         ]
     )
-    def test_shapes_are_correct_env_with_discrete_obs_and_action_spaces_vector_env(
-        self, _, n_envs, n_steps
-    ):
+    def test_shapes_are_correct_env_with_discrete_obs_and_action_spaces_vector_env(self, _, n_envs, n_steps):
         env = SyncVectorEnv([lambda: gym.make("Taxi-v3") for _ in range(n_envs)])
         loop = EnvironmentLoop(env, self._create_discrite_policy(env))
 
@@ -157,9 +142,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["n_steps=2", 2],
         ]
     )
-    def test_shapes_are_correct_env_with_continuous_obs_and_discrete_action_spaces(
-        self, _, n_steps
-    ):
+    def test_shapes_are_correct_env_with_continuous_obs_and_discrete_action_spaces(self, _, n_steps):
         env = gym.make("CartPole-v0")
         observation_shape = (1,) + env.observation_space.shape
 
@@ -191,9 +174,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["n_steps=2", 2],
         ]
     )
-    def test_shapes_are_correct_env_with_continuous_obs_and_discrete_action_spaces_sample(
-        self, _, n_steps
-    ):
+    def test_shapes_are_correct_env_with_continuous_obs_and_discrete_action_spaces_sample(self, _, n_steps):
         env = gym.make("CartPole-v0")
         observation_shape = (1,) + env.observation_space.shape
 
@@ -227,9 +208,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["n_envs=2_n_steps=2", 2, 2],
         ]
     )
-    def test_shapes_are_correct_env_with_continuous_obs_and_discrete_action_spaces_vector(
-        self, _, n_envs, n_steps
-    ):
+    def test_shapes_are_correct_env_with_continuous_obs_and_discrete_action_spaces_vector(self, _, n_envs, n_steps):
 
         env = SyncVectorEnv([lambda: gym.make("CartPole-v0") for _ in range(n_envs)])
         observation_shape = env.observation_space.shape
@@ -327,19 +306,13 @@ class EnvironmentLoopTest(unittest.TestCase):
             default=torch.float32,
         )
 
-    def _create_continuouse_policy(self, env, agent_info=None):
-        action_shape = (
-            env.action_space.shape
-            if not isinstance(env, VectorEnv)
-            else env.action_space[0].shape
-        )
-
-        agent_info = {} if agent_info is None else agent_info
+    def _create_continuouse_policy(self, env):
+        action_shape = env.action_space.shape if not isinstance(env, VectorEnv) else env.action_space[0].shape
 
         def policy(x):
             actions = torch.rand(x.shape[:1] + action_shape)
 
-            return actions, agent_info
+            return actions
 
         return policy
 
@@ -349,9 +322,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["n_steps=2", 2],
         ]
     )
-    def test_shapes_are_correct_env_with_continuous_action_spaces_sample(
-        self, _, n_steps
-    ):
+    def test_shapes_are_correct_env_with_continuous_action_spaces_sample(self, _, n_steps):
         env_name = "MountainCarContinuous-v0"
         env = gym.make(env_name)
         observation_shape = (1,) + env.observation_space.shape
@@ -387,9 +358,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["n_envs=2_n_steps=2", 2, 2],
         ]
     )
-    def test_shapes_are_correct_env_with_continuous_action_spaces_vector(
-        self, _, n_envs, n_steps
-    ):
+    def test_shapes_are_correct_env_with_continuous_action_spaces_vector(self, _, n_envs, n_steps):
         env_name = "MountainCarContinuous-v0"
         env = SyncVectorEnv([lambda: gym.make(env_name) for _ in range(n_envs)])
         observation_shape = (n_envs,) + env.envs[0].observation_space.shape
@@ -425,9 +394,7 @@ class EnvironmentLoopTest(unittest.TestCase):
             ["n_envs=2_n_steps=2", 2, 2],
         ]
     )
-    def test_shapes_are_correct_env_with_continuous_action_spaces_vector_sample(
-        self, _, n_envs, n_steps
-    ):
+    def test_shapes_are_correct_env_with_continuous_action_spaces_vector_sample(self, _, n_envs, n_steps):
         env_name = "MountainCarContinuous-v0"
         env = SyncVectorEnv([lambda: gym.make(env_name) for _ in range(n_envs)])
         observation_shape = (n_envs,) + env.envs[0].observation_space.shape
@@ -462,36 +429,30 @@ class EnvironmentLoopTest(unittest.TestCase):
         batch1 = loop.step()
         batch2 = loop.step()
 
-        torch.testing.assert_allclose(
-            batch1[SampleBatch.OBSERVATION_NEXTS], batch2[SampleBatch.OBSERVATIONS]
-        )
+        torch.testing.assert_allclose(batch1[SampleBatch.OBSERVATION_NEXTS], batch2[SampleBatch.OBSERVATIONS])
 
-    def _create_env_loop(self, env_name, n_envs=None, agent_info=None):
+    def _create_env_loop(self, env_name, n_envs=None, fetch_agent_info=None):
         if n_envs is None:
             env = gym.make(env_name)
         else:
             env = SyncVectorEnv([lambda: gym.make(env_name) for _ in range(n_envs)])
 
         if env_name == "MountainCarContinuous-v0":
-            return EnvironmentLoop(
-                env, self._create_continuouse_policy(env, agent_info)
-            )
+            return EnvironmentLoop(env, self._create_continuouse_policy(env), fetch_agent_info=fetch_agent_info)
 
         if env_name == "Taxi-v3" or "CartPole" in env_name:
-            return EnvironmentLoop(env, self._create_discrite_policy(env, agent_info))
+            return EnvironmentLoop(env, self._create_discrite_policy(env), fetch_agent_info=fetch_agent_info)
 
         raise RuntimeError("Unknown env", env_name)
 
     @parameterized.expand([["MountainCarContinuous-v0"], ["Taxi-v3"], ["CartPole-v0"]])
     def test_batch_contains_agent_info(self, env_name):
         agent_info = {SampleBatch.VF_PREDS: torch.rand([1, 1])}
-        loop = self._create_env_loop(env_name, agent_info=agent_info)
+        loop = self._create_env_loop(env_name, fetch_agent_info=lambda _: agent_info)
 
         batch = loop.step()
 
-        torch.testing.assert_allclose(
-            batch[SampleBatch.VF_PREDS], agent_info[SampleBatch.VF_PREDS]
-        )
+        torch.testing.assert_allclose(batch[SampleBatch.VF_PREDS], agent_info[SampleBatch.VF_PREDS])
 
     @parameterized.expand([[1], [2], [5]])
     def test_vector_env_increment_episode_ids(self, n_envs):

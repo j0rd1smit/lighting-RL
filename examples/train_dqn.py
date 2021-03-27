@@ -23,7 +23,7 @@ class DQNModel(pl.LightningModule):
         n_actions: int,
         gamma: float = 0.99,
         lr: float = 0.00025,
-        eps_frames: int = 25_000,
+        eps_frames: int = 100_000,
         eps_start: float = 1.0,
         eps_min: float = 0.1,
         sync_rate: int = 1000,
@@ -35,11 +35,11 @@ class DQNModel(pl.LightningModule):
         self.n_actions = n_actions
 
         self.network = torch.nn.Sequential(
-            torch.nn.Linear(n_observations, 32),
+            torch.nn.Linear(n_observations, 128),
             torch.nn.ReLU(),
-            torch.nn.Linear(32, 32),
+            torch.nn.Linear(128, 128),
             torch.nn.ReLU(),
-            torch.nn.Linear(32, n_actions),
+            torch.nn.Linear(128, n_actions),
         )
         self.target = copy.deepcopy(self.network)
 
@@ -49,14 +49,14 @@ class DQNModel(pl.LightningModule):
     def select_actions(self, x: torch.Tensor) -> Action:
         q_values = self.network(x)
 
-        return torch.argmax(q_values, 1), {}
+        return torch.argmax(q_values, 1)
 
     @auto_move_data
     def select_online_actions(self, x: torch.Tensor) -> Action:
         if np.random.random() <= self.eps:
             actions = torch.randint(low=0, high=self.n_actions - 1, size=x.shape[:1])
 
-            return actions, {}
+            return actions
 
         return self.select_actions(x)
 
@@ -147,7 +147,7 @@ def main():
     eval_callback = EnvironmentEvaluationCallback(env_loop)
 
     trainer = pl.Trainer(
-        gpus=0,
+        gpus=1,
         fast_dev_run=False,
         max_epochs=100,
         callbacks=callbacks + [eval_callback],

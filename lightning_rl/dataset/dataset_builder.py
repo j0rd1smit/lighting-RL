@@ -10,7 +10,7 @@ from lightning_rl.dataset.samplers.EntireBufferSampler import EntireBufferSample
 from lightning_rl.dataset.samplers.UniformSampler import UniformSampler
 from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
 from lightning_rl.storage.UniformReplayBuffer import UniformReplayBuffer
-from lightning_rl.types import Policy
+from lightning_rl.types import FetchAgentInfo, Policy
 
 EnvBuilder = Callable[[], gym.Env]
 
@@ -18,6 +18,7 @@ EnvBuilder = Callable[[], gym.Env]
 def on_policy_dataset(
     env_builder: EnvBuilder,
     select_online_actions: Policy,
+    fetch_agent_info: Optional[FetchAgentInfo] = None,
     # batch
     batch_size: int = 4000,
     # online callback
@@ -39,7 +40,7 @@ def on_policy_dataset(
         online_env = env_builder()
 
     n_samples_per_step = batch_size
-    env_loop = EnvironmentLoop(online_env, select_online_actions)
+    env_loop = EnvironmentLoop(online_env, select_online_actions, fetch_agent_info=fetch_agent_info)
 
     online_step_callback = OnlineDataCollectionCallback(
         buffer,
@@ -56,6 +57,7 @@ def on_policy_dataset(
 def off_policy_dataset(
     env_builder: EnvBuilder,
     select_online_actions: Policy,
+    fetch_agent_info: Optional[FetchAgentInfo] = None,
     # buffer
     capacity: int = 100_000,
     # batch
@@ -80,7 +82,7 @@ def off_policy_dataset(
         online_env = env_builder()
 
     n_samples_per_step = batch_size
-    env_loop = EnvironmentLoop(online_env, select_online_actions)
+    env_loop = EnvironmentLoop(online_env, select_online_actions, fetch_agent_info=fetch_agent_info)
 
     online_step_callback = OnlineDataCollectionCallback(
         buffer,
