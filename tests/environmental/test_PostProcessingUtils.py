@@ -59,13 +59,13 @@ class TestPostProcessingUtils(unittest.TestCase):
         batch = SampleBatch(
             {
                 SampleBatch.REWARDS: torch.tensor(rewards, dtype=torch.float32),
-                SampleBatch.VF_PREDS: torch.tensor(vf_predict, dtype=torch.float32),
+                SampleBatch.VALE_PREDICTIONS: torch.tensor(vf_predict, dtype=torch.float32),
             }
         )
 
         batch = compute_advantages(batch, last_r=last_r, gamma=gamma, use_gae=False, use_critic=True)
         discounted_return = discount_cumsum(torch.tensor(rewards + [last_r], dtype=torch.float32), gamma)[:-1]
-        expected_advantage = discounted_return - batch[SampleBatch.VF_PREDS]
+        expected_advantage = discounted_return - batch[SampleBatch.VALE_PREDICTIONS]
 
         self.assertListEqual(list(batch[Postprocessing.ADVANTAGES]), list(expected_advantage))
         self.assertListEqual(list(batch[Postprocessing.VALUE_TARGETS]), list(discounted_return))

@@ -72,7 +72,9 @@ class PGModel(pl.LightningModule):
         info = {}
         if self.hparams.use_value_network:
             with torch.no_grad():
-                info[SampleBatch.VF_PREDS] = self.value_network(batch[SampleBatch.OBSERVATION_NEXTS]).squeeze().cpu()
+                info[SampleBatch.VALE_PREDICTIONS] = (
+                    self.value_network(batch[SampleBatch.OBSERVATION_NEXTS]).squeeze().cpu()
+                )
 
         return info
 

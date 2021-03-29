@@ -18,7 +18,7 @@ def compute_advantages(
     use_gae: bool = False,
     use_critic: bool = False,
 ) -> SampleBatch:
-    assert SampleBatch.VF_PREDS in batch or not use_critic, "use_critic=True but values not found"
+    assert SampleBatch.VALE_PREDICTIONS in batch or not use_critic, "use_critic=True but values not found"
     assert use_critic or not use_gae, "Can't use gae without using a value function"
 
     if use_gae:
@@ -33,7 +33,7 @@ def compute_advantages(
         discounted_returns = discount_cumsum(rewards_plus_v, gamma)[:-1]
 
         if use_critic:
-            batch[Postprocessing.ADVANTAGES] = discounted_returns - batch[SampleBatch.VF_PREDS]
+            batch[Postprocessing.ADVANTAGES] = discounted_returns - batch[SampleBatch.VALE_PREDICTIONS]
             batch[Postprocessing.VALUE_TARGETS] = discounted_returns
         else:
             batch[Postprocessing.ADVANTAGES] = discounted_returns

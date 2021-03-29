@@ -447,12 +447,12 @@ class EnvironmentLoopTest(unittest.TestCase):
 
     @parameterized.expand([["MountainCarContinuous-v0"], ["Taxi-v3"], ["CartPole-v0"]])
     def test_batch_contains_agent_info(self, env_name):
-        agent_info = {SampleBatch.VF_PREDS: torch.rand([1, 1])}
+        agent_info = {SampleBatch.VALE_PREDICTIONS: torch.rand([1, 1])}
         loop = self._create_env_loop(env_name, fetch_agent_info=lambda _: agent_info)
 
         batch = loop.step()
 
-        torch.testing.assert_allclose(batch[SampleBatch.VF_PREDS], agent_info[SampleBatch.VF_PREDS])
+        torch.testing.assert_allclose(batch[SampleBatch.VALE_PREDICTIONS], agent_info[SampleBatch.VALE_PREDICTIONS])
 
     @parameterized.expand([[1], [2], [5]])
     def test_vector_env_increment_episode_ids(self, n_envs):

@@ -10,7 +10,7 @@ class SampleBatch(dict):
     DONES = "DONES"
     OBSERVATION_NEXTS = "OBSERVATION_NEXTS"
     IDX = "IDX"
-    VF_PREDS = "VF_PREDS"
+    VALE_PREDICTIONS = "VALE_PREDICTIONS"
     EPS_ID = "EPS_ID"
 
     def __init__(self, _dict: Dict[str, torch.Tensor]) -> None:
