@@ -1,3 +1,3 @@
-from environmental.SampleBatch import SampleBatch
 from lightning_rl.builders import eval_callback, off_policy_dataset, on_policy_dataset
 from lightning_rl.environmental.post_processing_utils import Postprocessing
+from lightning_rl.environmental.SampleBatch import SampleBatch
