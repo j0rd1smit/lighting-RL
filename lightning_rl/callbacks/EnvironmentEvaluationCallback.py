@@ -12,15 +12,15 @@ LengthMapper = Callable[[np.ndarray], np.ndarray]
 
 default_return_mappers = {
     "return/mean": np.mean,
-    "return/min": np.mean,
-    "return/max": np.mean,
+    "return/min": np.min,
+    "return/max": np.max,
     "return/median": np.median,
 }
 
 default_length_mappers = {
     "length/mean": np.mean,
-    "length/min": np.mean,
-    "length/max": np.mean,
+    "length/min": np.min,
+    "length/max": np.max,
 }
 
 

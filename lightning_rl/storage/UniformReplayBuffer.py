@@ -9,12 +9,29 @@ from lightning_rl.storage.IBuffer import DynamicBuffer
 class UniformReplayBuffer(DynamicBuffer):
     EXCLUDED_KEYS = [SampleBatch.IDX]
 
-    def __init__(self, capacity: int, buffer: Optional[Dict[str, torch.Tensor]] = None) -> None:
+    def __init__(
+        self,
+        capacity: int,
+        buffer: Optional[Dict[str, torch.Tensor]] = None,
+        pointer: Optional[int] = None,
+    ) -> None:
         self._capacity = capacity
+        if buffer is None:
+            self.buffer: Dict[str, torch.Tensor] = {}
+            self.size = 0
+        else:
+            self.size = 0
+            for k, v in buffer.items():
+                assert len(v) <= capacity, f"datasize is large than capacity for {k}"
+                self.size = len(v)
 
-        self.buffer: Dict[str, torch.Tensor] = {} if buffer is None else buffer
-        self.pointer = min(len(self.buffer), self.capacity)
-        self.size = min(len(self.buffer), self.capacity)
+            self.buffer: Dict[str, torch.Tensor] = buffer
+
+        if pointer is None:
+            self.pointer = min(self.size, self.capacity)
+        else:
+            assert pointer <= self.size
+            self.pointer = pointer
 
     @property
     def capacity(self) -> int:
@@ -47,6 +64,34 @@ class UniformReplayBuffer(DynamicBuffer):
     def clear(self) -> None:
         self.pointer = 0
         self.size = 0
+
+    def save(
+        self,
+        path: str,
+        include_meta_data: bool = True,
+    ) -> None:
+        data = {
+            "buffer": self.buffer,
+        }
+
+        if include_meta_data:
+            data["pointer"] = self.pointer
+            data["capacity"] = self.capacity
+
+        torch.save(data, path)
+
+    @staticmethod
+    def load(path: str):
+        data = torch.load(path)
+        pointer = data.get("pointer", None)
+        capacity = data.get("capacity", None)
+        buffer = data["buffer"]
+
+        return UniformReplayBuffer(
+            capacity=capacity,
+            pointer=pointer,
+            buffer=buffer,
+        )
 
     def __len__(self) -> int:
         return self.size
