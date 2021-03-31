@@ -9,8 +9,8 @@ import torch.nn.functional as F
 from pytorch_lightning.core.decorators import auto_move_data
 from torch.optim import Optimizer
 
+from lightning_rl.builders import off_policy_dataset
 from lightning_rl.callbacks.EnvironmentEvaluationCallback import EnvironmentEvaluationCallback
-from lightning_rl.dataset.dataset_builder import off_policy_dataset
 from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
 from lightning_rl.environmental.SampleBatch import SampleBatch
 from lightning_rl.types import Action

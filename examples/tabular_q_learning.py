@@ -6,8 +6,8 @@ import torch
 from gym.vector import VectorEnv
 from torch.optim import Optimizer
 
+from lightning_rl.builders import on_policy_dataset
 from lightning_rl.callbacks.EnvironmentEvaluationCallback import EnvironmentEvaluationCallback
-from lightning_rl.dataset.dataset_builder import on_policy_dataset
 from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
 from lightning_rl.environmental.SampleBatch import SampleBatch
 from lightning_rl.types import Action

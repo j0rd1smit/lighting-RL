@@ -4,6 +4,7 @@ import gym
 from gym.vector import SyncVectorEnv
 from pytorch_lightning import Callback
 
+from lightning_rl.callbacks.EnvironmentEvaluationCallback import EnvironmentEvaluationCallback
 from lightning_rl.callbacks.OnlineDataCollectionCallback import OnlineDataCollectionCallback, PostProcessFunction
 from lightning_rl.dataset.OnlineDataModule import OnlineDataModule
 from lightning_rl.dataset.samplers.EntireBufferSampler import EntireBufferSampler
@@ -34,10 +35,7 @@ def on_policy_dataset(
 
     data_module = OnlineDataModule(buffer, batch_size, sampler=sampler, pin_memory=True, n_workers=0)
 
-    if n_envs > 1:
-        online_env = SyncVectorEnv([env_builder for _ in range(n_envs)])
-    else:
-        online_env = env_builder()
+    online_env = _build_env(env_builder, n_envs)
 
     n_samples_per_step = batch_size
     env_loop = EnvironmentLoop(online_env, select_online_actions, fetch_agent_info=fetch_agent_info)
@@ -52,6 +50,13 @@ def on_policy_dataset(
     )
 
     return data_module, [online_step_callback]
+
+
+def _build_env(env_builder: EnvBuilder, n_envs: int) -> gym.Env:
+    if n_envs > 1:
+        return SyncVectorEnv([env_builder for _ in range(n_envs)])
+    else:
+        return env_builder()
 
 
 def off_policy_dataset(
@@ -76,10 +81,7 @@ def off_policy_dataset(
 
     data_module = OnlineDataModule(buffer, batch_size, sampler=sampler, pin_memory=True, n_workers=0)
 
-    if n_envs > 1:
-        online_env = SyncVectorEnv([env_builder for _ in range(n_envs)])
-    else:
-        online_env = env_builder()
+    online_env = _build_env(env_builder, n_envs)
 
     n_samples_per_step = batch_size
     env_loop = EnvironmentLoop(online_env, select_online_actions, fetch_agent_info=fetch_agent_info)
@@ -94,3 +96,24 @@ def off_policy_dataset(
     )
 
     return data_module, [online_step_callback]
+
+
+def eval_callback(
+    env_builder: EnvBuilder,
+    select_actions: Policy,
+    n_envs: int = 1,
+    n_eval_episodes: int = 10,
+    to_eval: bool = False,
+    logging_prefix: str = "Evaluation",
+    mean_return_in_progress_bar: bool = True,
+) -> EnvironmentEvaluationCallback:
+    env = _build_env(env_builder, n_envs)
+
+    env_loop = EnvironmentLoop(env, select_actions)
+    return EnvironmentEvaluationCallback(
+        env_loop,
+        n_eval_episodes=n_eval_episodes,
+        to_eval=to_eval,
+        logging_prefix=logging_prefix,
+        mean_return_in_progress_bar=mean_return_in_progress_bar,
+    )

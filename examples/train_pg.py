@@ -8,8 +8,8 @@ from pytorch_lightning.core.decorators import auto_move_data
 from torch.distributions import Categorical
 from torch.optim import Optimizer
 
+from lightning_rl.builders import on_policy_dataset
 from lightning_rl.callbacks.EnvironmentEvaluationCallback import EnvironmentEvaluationCallback
-from lightning_rl.dataset.dataset_builder import on_policy_dataset
 from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
 from lightning_rl.environmental.post_processing_utils import Postprocessing, compute_advantages
 from lightning_rl.environmental.SampleBatch import SampleBatch
