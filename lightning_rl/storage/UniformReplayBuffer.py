@@ -79,7 +79,7 @@ class UniformReplayBuffer(DynamicBuffer):
         if include_meta_data:
             data["pointer"] = self.pointer
             data["capacity"] = self.capacity
-            data["size"] = self.capacity
+            data["size"] = self.size
 
         torch.save(data, path)
 
