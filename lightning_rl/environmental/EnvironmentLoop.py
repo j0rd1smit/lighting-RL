@@ -27,7 +27,7 @@ class EnvironmentLoop:
         self._episode_ids = np.arange(self.n_enviroments, dtype=np.int64)
 
         if self._is_vectorized:
-            self._expected_observation_shape = self.env.observation_space.shape
+            self._expected_observation_shape = (self.n_enviroments,) + self.env.envs[0].observation_space.shape
         else:
             self._expected_observation_shape = (1,) + self.env.observation_space.shape
             self._obs = np.expand_dims(self._obs, 0)
