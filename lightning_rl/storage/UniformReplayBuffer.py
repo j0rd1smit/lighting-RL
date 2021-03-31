@@ -14,18 +14,20 @@ class UniformReplayBuffer(DynamicBuffer):
         capacity: int,
         buffer: Optional[Dict[str, torch.Tensor]] = None,
         pointer: Optional[int] = None,
+        size: Optional[int] = None,
     ) -> None:
+        assert (size is None and buffer is None) or (size is not None and buffer is not None)
+
         self._capacity = capacity
+
         if buffer is None:
             self.buffer: Dict[str, torch.Tensor] = {}
             self.size = 0
         else:
-            self.size = 0
             for k, v in buffer.items():
                 assert len(v) <= capacity, f"datasize is large than capacity for {k}"
-                self.size = len(v)
-
             self.buffer: Dict[str, torch.Tensor] = buffer
+            self.size = size
 
         if pointer is None:
             self.pointer = min(self.size, self.capacity)
@@ -77,6 +79,7 @@ class UniformReplayBuffer(DynamicBuffer):
         if include_meta_data:
             data["pointer"] = self.pointer
             data["capacity"] = self.capacity
+            data["size"] = self.capacity
 
         torch.save(data, path)
 
@@ -86,11 +89,13 @@ class UniformReplayBuffer(DynamicBuffer):
         pointer = data.get("pointer", None)
         capacity = data.get("capacity", None)
         buffer = data["buffer"]
+        size = data.get("size", None)
 
         return UniformReplayBuffer(
             capacity=capacity,
             pointer=pointer,
             buffer=buffer,
+            size=size,
         )
 
     def __len__(self) -> int:
