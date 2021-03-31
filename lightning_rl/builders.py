@@ -101,6 +101,7 @@ def off_policy_dataset(
 def eval_callback(
     env_builder: EnvBuilder,
     select_actions: Policy,
+    seed: Optional[int] = None,
     n_envs: int = 1,
     n_eval_episodes: int = 10,
     to_eval: bool = False,
@@ -114,6 +115,7 @@ def eval_callback(
         env_loop,
         n_eval_episodes=n_eval_episodes,
         to_eval=to_eval,
+        seed=seed,
         logging_prefix=logging_prefix,
         mean_return_in_progress_bar=mean_return_in_progress_bar,
     )
