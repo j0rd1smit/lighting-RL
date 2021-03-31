@@ -2,7 +2,7 @@ import copy
 from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 import numpy as np
-from pytorch_lightning import Callback, LightningModule, Trainer
+from pytorch_lightning import Callback, LightningModule
 
 from lightning_rl.environmental.EnvironmentLoop import EnvironmentLoop
 from lightning_rl.environmental.SampleBatch import SampleBatch
@@ -54,7 +54,7 @@ class EnvironmentEvaluationCallback(Callback):
         self.logging_prefix = logging_prefix
         self.mean_return_in_progress_bar = mean_return_in_progress_bar
 
-    def on_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_train_epoch_end(self, trainer, pl_module: LightningModule, outputs: Any) -> None:
         self.env_loop.seed(self.seed)
         was_in_training_mode = pl_module.training
         if self.to_eval:

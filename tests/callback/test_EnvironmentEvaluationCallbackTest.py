@@ -31,7 +31,7 @@ class EnvironmentEvaluationCallbackTest(unittest.TestCase):
 
         for i in range(1, n):
             self._mock_env_loop_step(env_loop, n_eval_episodes)
-            callback.on_epoch_end(mock.Mock(), mock.Mock())
+            callback.on_train_epoch_end(mock.Mock(), mock.Mock(), mock.Mock())
 
             self.assertEqual(env_loop.seed.call_count, i)
             env_loop.seed.assert_called_with(seed)
@@ -82,11 +82,9 @@ class EnvironmentEvaluationCallbackTest(unittest.TestCase):
         pl_module = mock.Mock()
         pl_module.training_mode = was_in_training_mode
 
-        callback = EnvironmentEvaluationCallback(
-            env_loop, to_eval=True, n_eval_episodes=n_eval_episodes
-        )
+        callback = EnvironmentEvaluationCallback(env_loop, to_eval=True, n_eval_episodes=n_eval_episodes)
         self._mock_env_loop_step(env_loop, n_eval_episodes)
-        callback.on_epoch_end(mock.Mock(), pl_module)
+        callback.on_train_epoch_end(mock.Mock(), pl_module, mock.Mock())
 
         pl_module.eval.assert_called_once()
         if was_in_training_mode:
@@ -105,9 +103,7 @@ class EnvironmentEvaluationCallbackTest(unittest.TestCase):
         env_loop = self._create_env_loop_mock(n_eval_episodes)
 
         def _test_case_callback(lengths):
-            self.assertListEqual(
-                list(lengths), [n_steps for _ in range(n_eval_episodes)]
-            )
+            self.assertListEqual(list(lengths), [n_steps for _ in range(n_eval_episodes)])
 
         callback = EnvironmentEvaluationCallback(
             env_loop,
@@ -117,7 +113,7 @@ class EnvironmentEvaluationCallbackTest(unittest.TestCase):
             mean_return_in_progress_bar=False,
         )
         self._mock_env_loop_step(env_loop, n_eval_episodes, n_steps=n_steps)
-        callback.on_epoch_end(mock.Mock(), mock.Mock())
+        callback.on_train_epoch_end(mock.Mock(), mock.Mock(), mock.Mock())
 
     @parameterized.expand(
         [
@@ -129,16 +125,10 @@ class EnvironmentEvaluationCallbackTest(unittest.TestCase):
     def test_measure_return_correctly(self, _, n_eval_episodes, n_steps):
         env_loop = self._create_env_loop_mock(n_eval_episodes)
 
-        side_effects = self._mock_env_loop_step(
-            env_loop, n_eval_episodes, n_steps=n_steps
-        )
+        side_effects = self._mock_env_loop_step(env_loop, n_eval_episodes, n_steps=n_steps)
 
         def _test_case_callback(rewards):
-            expected_rewards = list(
-                sum(
-                    batch[SampleBatch.REWARDS].double() for batch in side_effects
-                ).numpy()
-            )
+            expected_rewards = list(sum(batch[SampleBatch.REWARDS].double() for batch in side_effects).numpy())
             self.assertListEqual(list(rewards), expected_rewards)
 
         callback = EnvironmentEvaluationCallback(
@@ -149,7 +139,7 @@ class EnvironmentEvaluationCallbackTest(unittest.TestCase):
             mean_return_in_progress_bar=False,
         )
 
-        callback.on_epoch_end(mock.Mock(), mock.Mock())
+        callback.on_train_epoch_end(mock.Mock(), mock.Mock(), mock.Mock())
 
 
 if __name__ == "__main__":
