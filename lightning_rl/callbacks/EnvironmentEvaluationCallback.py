@@ -108,6 +108,9 @@ class EnvironmentEvaluationCallback(Callback):
         return list(lengths), list(returns)
 
     def on_fit_end(self, trainer, pl_module: LightningModule) -> None:
+        if self.n_test_episodes <= 0:
+            return
+
         self.env_loop.seed(self.seed)
         was_in_training_mode = pl_module.training
         if self.to_eval:
