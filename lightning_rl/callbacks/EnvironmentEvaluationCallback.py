@@ -15,12 +15,14 @@ default_return_mappers = {
     "return/min": np.min,
     "return/max": np.max,
     "return/median": np.median,
+    "return/std": np.std,
 }
 
 default_length_mappers = {
     "length/mean": np.mean,
     "length/min": np.min,
     "length/max": np.max,
+    "length/std": np.std,
 }
 
 
@@ -30,6 +32,7 @@ class EnvironmentEvaluationCallback(Callback):
         env_loop: EnvironmentLoop,
         *,
         n_eval_episodes: int = 10,
+        n_test_episodes: int = 250,
         return_mappers: Optional[Dict[str, ScoreMapper]] = None,
         length_mappers: Optional[Dict[str, LengthMapper]] = None,
         seed: Optional[int] = None,
@@ -39,6 +42,7 @@ class EnvironmentEvaluationCallback(Callback):
     ) -> None:
         self.env_loop = env_loop
         self.n_eval_episodes = n_eval_episodes
+        self.n_test_episodes = n_test_episodes
         self.return_mappers = (
             return_mappers
             if return_mappers is not None
@@ -102,3 +106,32 @@ class EnvironmentEvaluationCallback(Callback):
                 lengths[i] += 1
 
         return list(lengths), list(returns)
+
+    def on_fit_end(self, trainer, pl_module: LightningModule) -> None:
+        self.env_loop.seed(self.seed)
+        was_in_training_mode = pl_module.training
+        if self.to_eval:
+            pl_module.eval()
+
+        returns: List[float] = []
+        lengths: List[float] = []
+
+        while len(returns) < self.n_test_episodes:
+            self.env_loop.reset()
+            _lengths, _returns = self._eval_env_run()
+            returns = returns + _returns
+            lengths = lengths + _lengths
+
+        returns_arr = np.array(returns)
+        lengths_arr = np.array(lengths)
+
+        if self.to_eval and was_in_training_mode:
+            pl_module.train()
+
+        for k, mapper in self.return_mappers.items():
+            v: Any = mapper(returns_arr)
+            pl_module.log(self.logging_prefix + "/test/" + k, v, prog_bar=False)
+
+        for k, mapper in self.length_mappers.items():
+            v: Any = mapper(lengths_arr)  # type: ignore
+            pl_module.log(self.logging_prefix + "/test/" + k, v, prog_bar=False)
