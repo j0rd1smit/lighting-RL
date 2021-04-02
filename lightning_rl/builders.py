@@ -104,6 +104,7 @@ def eval_callback(
     seed: Optional[int] = None,
     n_envs: int = 1,
     n_eval_episodes: int = 10,
+    n_test_episodes: int = 100,
     to_eval: bool = False,
     logging_prefix: str = "Evaluation",
     mean_return_in_progress_bar: bool = True,
