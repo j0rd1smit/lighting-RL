@@ -115,6 +115,7 @@ def eval_callback(
     return EnvironmentEvaluationCallback(
         env_loop,
         n_eval_episodes=n_eval_episodes,
+        n_test_episodes=n_test_episodes,
         to_eval=to_eval,
         seed=seed,
         logging_prefix=logging_prefix,
