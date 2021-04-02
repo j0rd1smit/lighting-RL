@@ -107,7 +107,7 @@ class EnvironmentEvaluationCallback(Callback):
 
         return list(lengths), list(returns)
 
-    def on_fit_end(self, trainer, pl_module: LightningModule) -> None:
+    def on_train_end(self, trainer, pl_module: LightningModule) -> None:
         if self.n_test_episodes <= 0:
             return
 
