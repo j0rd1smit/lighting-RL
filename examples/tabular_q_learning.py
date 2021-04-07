@@ -39,7 +39,7 @@ class QTableModel(pl.LightningModule):
 
     def select_online_actions(self, x: torch.Tensor) -> Action:
         if torch.rand([1])[0] < 0.25:
-            actions = torch.randint(low=0, high=self.n_actions - 1, size=x.shape[:1])
+            actions = torch.randint(low=0, high=self.n_actions, size=x.shape[:1])
             return actions
         else:
             return self.select_actions(x)

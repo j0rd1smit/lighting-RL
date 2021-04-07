@@ -54,7 +54,7 @@ class EnvironmentLoopTest(unittest.TestCase):
         n_actions = env.action_space.n if not isinstance(env, VectorEnv) else env.action_space[0].n
 
         def policy(x):
-            actions = torch.randint(low=0, high=n_actions - 1, size=x.shape[:1])
+            actions = torch.randint(low=0, high=n_actions, size=x.shape[:1])
 
             return actions
 

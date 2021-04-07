@@ -54,7 +54,7 @@ class DQNModel(pl.LightningModule):
     @auto_move_data
     def select_online_actions(self, x: torch.Tensor) -> Action:
         if np.random.random() <= self.eps:
-            actions = torch.randint(low=0, high=self.n_actions - 1, size=x.shape[:1])
+            actions = torch.randint(low=0, high=self.n_actions, size=x.shape[:1])
 
             return actions
 
